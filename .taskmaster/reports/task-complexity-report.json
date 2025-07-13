@@ -1,0 +1,93 @@
+{
+	"meta": {
+		"generatedAt": "2025-07-13T13:21:04.078Z",
+		"tasksAnalyzed": 10,
+		"totalTasks": 10,
+		"analysisCount": 10,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Project Setup & Core Infrastructure",
+			"complexityScore": 3,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down the 'Project Setup & Core Infrastructure' task into actionable subtasks covering frontend, backend, database, and environment configuration.",
+			"reasoning": "This task involves setting up well-defined components (Next.js, FastAPI, MongoDB) and their environments. While it requires knowledge of multiple technologies, the steps are largely procedural and well-documented, making it of low-medium complexity."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "User Authentication & Role Management",
+			"complexityScore": 7,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Elaborate on the 'User Authentication & Role Management' task by detailing subtasks for user registration, login, JWT implementation, secure password handling, and role-based access control for 'Specialist' and 'Patient' roles.",
+			"reasoning": "Authentication is a critical security component, involving JWT, secure password hashing, and session management. The addition of robust Role-Based Access Control (RBAC) for two distinct user types significantly increases complexity, requiring careful design and implementation across both frontend and backend."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Specialist - Patient Management Module",
+			"complexityScore": 5,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Detail the 'Specialist - Patient Management Module' task into subtasks covering data modeling, backend API development for CRUD operations, specialist-patient linking, and frontend UI implementation for managing patients.",
+			"reasoning": "This task involves standard CRUD operations but adds specific business logic for linking patients to specialists and restricting management capabilities. It requires both backend API development and a functional frontend UI, placing it at a medium complexity level."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Specialist - Treatment & Prescription Management",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down 'Specialist - Treatment & Prescription Management' into subtasks, including data model design, backend API for CRUD, frontend UI for data input and display, and the implementation of downloadable prescription generation.",
+			"reasoning": "This task involves managing multiple related data entities (treatments, medications, prescriptions), requiring complex data models and UI for input and display. The added requirement for generating and downloading prescriptions introduces file handling and potentially PDF generation, increasing complexity to medium-high."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Specialist - Appointment Management & Secure Chat",
+			"complexityScore": 8,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Expand 'Specialist - Appointment Management & Secure Chat' into detailed subtasks, separating appointment scheduling (including calendar integration) from the real-time secure chat functionality (backend WebSockets, message storage, and frontend UI).",
+			"reasoning": "This task combines two highly complex features: a full-fledged appointment management system with calendar integration (which can involve scheduling logic, conflicts, notifications) and a real-time, secure chat system. Real-time communication via WebSockets, coupled with security considerations, makes this a high-complexity task."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Patient - Personal Dashboard & Medical History",
+			"complexityScore": 5,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Detail the 'Patient - Personal Dashboard & Medical History' task into subtasks focusing on frontend UI development, data retrieval from the backend for various medical data points, and integrating downloadable prescriptions.",
+			"reasoning": "This task is primarily a frontend aggregation and display challenge. While the data is already managed elsewhere, presenting diverse medical information clearly and integrating downloadable prescriptions requires careful UI/UX design and robust data retrieval, placing it at a medium complexity."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Patient - Consultation History & Instructions",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down 'Patient - Consultation History & Instructions' into subtasks for retrieving and displaying chronological appointment history, and viewing personalized treatment plans and specialist instructions.",
+			"reasoning": "Similar to the patient dashboard, this task focuses on data display. It's less complex than a full dashboard as it's more specific, primarily involving retrieving and presenting chronological appointment data and associated notes/instructions."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Patient - Real-Time Chat Integration",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Detail 'Patient - Real-Time Chat Integration' into subtasks covering the patient-side UI development, integration with the existing real-time chat backend, and ensuring secure communication only with the assigned specialist.",
+			"reasoning": "This is the patient-facing component of the real-time chat. While the core backend (WebSockets) is likely shared with the specialist's chat, implementing the patient-side UI, ensuring secure message flow, and enforcing communication only with the assigned specialist adds specific logic and integration challenges, making it medium-high complexity."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "AI Assistant Integration (Professional & Patient)",
+			"complexityScore": 8,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break down 'AI Assistant Integration' into subtasks, focusing on integrating with an external AI service, developing distinct AI interaction logic and UI for both 'Specialist' and 'Patient' roles, and handling responses.",
+			"reasoning": "Integrating an external AI service involves API communication, prompt engineering for different use cases (diagnostic vs. general advice), and building distinct UI components for two user types. Handling responses, potential rate limits, and ensuring relevance adds significant complexity."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Security, Compliance & Extensibility Refinement",
+			"complexityScore": 9,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Detail 'Security, Compliance & Extensibility Refinement' into subtasks covering comprehensive security enhancements (HTTPS, encryption, audits), GDPR compliance considerations, and architectural improvements for modularity and API documentation.",
+			"reasoning": "This is a cross-cutting, non-functional requirement that impacts the entire system. It involves deep technical expertise in security (encryption, audits), legal/compliance understanding (GDPR), and architectural review for future scalability. It's a holistic hardening and refinement process, making it very high complexity."
+		}
+	]
+}
