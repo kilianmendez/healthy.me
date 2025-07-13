@@ -1,0 +1,88 @@
+Product Requirements Document (PRD)
+==================================
+
+Medical Tracker App
+Version: 1.0
+Author: [Your Name]
+Date: [Insert Date]
+
+1. Purpose
+----------
+The purpose of this document is to define the product requirements for Medical Tracker, a digital platform that enables healthcare professionals to monitor, personalize, and manage their patients’ treatments while facilitating communication and leveraging AI for smart assistance. The system is built to be modular and scalable to accommodate additional features over time.
+
+2. Target Users
+---------------
+2.1. Healthcare Specialists
+- Doctors, therapists, psychologists, and other certified medical professionals.
+
+2.2. Patients
+- Individuals under the care of the healthcare specialists registered on the platform.
+
+3. Core Features
+----------------
+
+3.1. For Specialists
+- Patient Management:
+  Specialists can add and manage multiple patients. Only specialists can initiate this connection—patients cannot self-assign to specialists.
+
+- Treatment Tracking:
+  View all patient data, including past and current treatments, medications, prescriptions, and treatment outcomes.
+
+- AI Assistant (for Professionals):
+  Provides diagnostic suggestions or highlights relevant insights based on patient history and symptoms to support decision-making.
+  NOTE: AI functionality will be added at the end, after all core features are completed.
+
+- Prescription Generation:
+  Specialists can issue prescriptions which are saved in the patient’s medical history.
+
+- Appointment Management:
+  View, create, update, or cancel appointments with patients.
+
+- Secure Chat:
+  Real-time communication with patients for follow-ups or doubts.
+
+3.2. For Patients
+- Personal Dashboard:
+  Access to personal medical data, including:
+  - Medical history
+  - Ongoing and past treatments
+  - Diagnosed conditions
+  - Prescribed medications and downloadable prescriptions
+
+- Consultation History:
+  Chronological list of past appointments with summaries and doctor notes.
+
+- Instructions & Guidelines:
+  View personalized treatment plans and instructions sent by the specialist.
+
+- AI Assistant (for Patients):
+  Provides answers, recommendations, and general advice when the assigned specialist is unavailable.
+  NOTE: AI functionality will be added at the end, after all core features are completed.
+
+- Real-Time Chat:
+  Secure direct messaging with the assigned specialist.
+
+4. Technical Stack
+------------------
+
+Frontend:       Next.js
+Styling:        Tailwind CSS
+Backend:        Python (FastAPI)
+Database:       MongoDB
+
+The app must be highly modular and extensible, allowing for seamless addition of new roles and features over time.
+
+5. Flexibility & Future Scope
+-----------------------------
+- Allow dynamic feature expansion (e.g. new modules for analytics, reports, etc.).
+- Support multi-role architecture with clear role boundaries.
+- Be API-first to allow possible mobile app development or third-party integrations in the future.
+- Incorporate AI features that can evolve, including natural language processing, treatment optimization, or predictive analytics.
+
+6. Security & Compliance (Future Consideration)
+-----------------------------------------------
+- Data must be securely stored and transmitted (JWT-based auth, HTTPS).
+- Sensitive health data handling must follow compliance standards (GDPR).
+- Role-based access control (RBAC) will be implemented to ensure data is only accessible by authorized users.
+
+
