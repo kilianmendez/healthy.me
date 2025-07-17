@@ -4,649 +4,148 @@
       {
         "id": 1,
         "title": "Project Setup & Core Infrastructure",
-        "description": "Initialize Next.js frontend, FastAPI backend, and MongoDB database. Set up basic project structure and environment configurations.",
-        "details": "Frontend: Next.js, Tailwind CSS. Backend: Python (FastAPI). Database: MongoDB. Establish development and production environments.",
-        "testStrategy": "Verify successful setup of all components and basic connectivity.",
+        "description": "Initialize project repositories, set up Next.js frontend, FastAPI backend, and MongoDB database. Configure basic connections and environment.",
+        "details": "Frontend: Next.js with Tailwind CSS. Backend: Python FastAPI. Database: MongoDB. Establish basic project structure and ensure connectivity between components. Implement a basic health check endpoint for the backend.",
+        "testStrategy": "Verify all services (frontend, backend, database) can start successfully and communicate. Confirm basic API endpoint returns expected response.",
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design and Implement Database Schema for User Management",
-            "description": "Create the necessary database tables and relationships for storing user information, including user profiles, authentication credentials, and session data.",
-            "dependencies": [],
-            "details": "Define `users` table (id, username, email, password_hash, salt, created_at, updated_at). Define `sessions` table (id, user_id, token, expires_at, created_at). Consider indexing for performance on `username`, `email`, and `token`. Use appropriate data types and constraints (e.g., unique for username/email).",
-            "status": "pending",
-            "testStrategy": "Verify table creation, column types, constraints, and indexing using database introspection tools. Run migration scripts and check schema integrity."
-          },
-          {
-            "id": 2,
-            "title": "Develop User Registration API Endpoint",
-            "description": "Implement a RESTful API endpoint that allows new users to register by providing necessary details, including secure password hashing.",
-            "dependencies": [
-              1
-            ],
-            "details": "Create `/api/register` endpoint (POST). Accept `username`, `email`, `password`. Validate input (e.g., email format, password strength, uniqueness of username/email). Hash password using a strong, industry-standard algorithm (e.g., bcrypt) with a generated salt. Store user data in the `users` table. Return appropriate success/error responses.",
-            "status": "pending",
-            "testStrategy": "Unit tests for input validation and password hashing. Integration tests for successful registration, duplicate username/email registration, and invalid input scenarios (e.g., weak password, invalid email format)."
-          },
-          {
-            "id": 3,
-            "title": "Develop User Login and Session Management API Endpoints",
-            "description": "Implement API endpoints for user login, authentication, and secure session creation/invalidation.",
-            "dependencies": [
-              1
-            ],
-            "details": "Create `/api/login` endpoint (POST). Accept `username` (or `email`) and `password`. Verify credentials against stored hashes. Upon successful authentication, generate a unique, secure session token, store it in the `sessions` table linked to the user, and return it to the client (e.g., via HTTP-only cookie or response body). Implement `/api/logout` endpoint (POST) to invalidate the current user's session token.",
-            "status": "pending",
-            "testStrategy": "Unit tests for password verification logic. Integration tests for successful login, incorrect credentials, session token generation and storage, and session invalidation upon logout. Test session expiry logic."
-          },
-          {
-            "id": 4,
-            "title": "Implement Authentication Middleware and Protect Routes",
-            "description": "Create a middleware component to verify user authentication status for protected API routes and apply it to relevant endpoints.",
-            "dependencies": [
-              3
-            ],
-            "details": "Develop an authentication middleware that intercepts incoming requests. Extract the session token from the request (e.g., from headers or cookies). Validate the token against the `sessions` table (check existence, expiry, and user association). If valid, attach user information to the request object. If invalid or missing, return a 401 Unauthorized response. Apply this middleware to example protected routes (e.g., `/api/profile`, `/api/settings`).",
-            "status": "pending",
-            "testStrategy": "Integration tests for accessing protected routes with valid, expired, and invalid/missing session tokens. Verify that user information is correctly populated in the request context for authenticated users. Test error handling for unauthorized access."
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 2,
-        "title": "User Authentication & Role Management",
-        "description": "Implement user registration, login, and session management. Establish distinct roles for 'Specialist' and 'Patient' with role-based access control (RBAC).",
-        "details": "JWT-based authentication. Secure password hashing. RBAC for Specialist and Patient roles, ensuring data access based on user type.",
-        "testStrategy": "Test user registration, login/logout for both roles. Verify unauthorized access attempts are blocked based on RBAC.",
+        "title": "User Authentication & Authorization",
+        "description": "Implement secure user registration, login, and role-based access control (specialist/patient) using JWT.",
+        "details": "Develop API endpoints for user registration and login. Implement JWT token generation upon successful login and validation for protected routes. Ensure role-based access control (specialist vs. patient) is enforced for relevant functionalities.",
+        "testStrategy": "Test specialist and patient registration/login flows. Verify that only authenticated users with correct roles can access specific endpoints. Test JWT token expiration and refresh (if applicable).",
         "priority": "high",
         "dependencies": [
           1
         ],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design User Authentication Database Schema",
-            "description": "Define the necessary database tables and their columns for storing user information, roles, and session data required for the authentication system.",
-            "dependencies": [],
-            "details": "Create `users` table (id, username, email, password_hash, salt, created_at, updated_at), `roles` table (id, name), `user_roles` join table (user_id, role_id), and `sessions` table (id, user_id, token, expires_at, created_at). Ensure appropriate data types and indexing for performance.",
-            "status": "pending",
-            "testStrategy": "Review schema definitions with the team for completeness and correctness. Verify that database migration scripts successfully create the tables as defined."
-          },
-          {
-            "id": 2,
-            "title": "Implement Secure Password Hashing Module",
-            "description": "Develop a dedicated module or utility for securely hashing and verifying user passwords using industry-standard, robust cryptographic algorithms.",
-            "dependencies": [],
-            "details": "Utilize a well-vetted library (e.g., bcrypt, Argon2) for password hashing. The module should provide functions for `hashPassword(plainTextPassword)` which generates a hash and salt, and `verifyPassword(plainTextPassword, storedHash, storedSalt)` which compares a plain text password against a stored hash.",
-            "status": "pending",
-            "testStrategy": "Unit tests for `hashPassword` to ensure different inputs produce different hashes and that salts are unique. Unit tests for `verifyPassword` to confirm correct verification for valid passwords and rejection for invalid ones. Test edge cases like empty passwords."
-          },
-          {
-            "id": 3,
-            "title": "Develop User Registration API Endpoint",
-            "description": "Create a RESTful API endpoint (`/api/register`) that allows new users to sign up by providing a username, email, and password.",
-            "dependencies": [
-              1,
-              2
-            ],
-            "details": "The endpoint should validate input (e.g., strong password policy, valid email format). Use the password hashing module (Subtask 2) to hash and store the password securely in the database (Subtask 1). Handle duplicate username/email errors gracefully. Return appropriate success/failure responses.",
-            "status": "pending",
-            "testStrategy": "Unit tests for input validation logic. Integration tests using Postman/cURL to send valid and invalid registration requests, verifying database entries and API responses (e.g., 201 Created, 400 Bad Request, 409 Conflict)."
-          },
-          {
-            "id": 4,
-            "title": "Develop User Login API Endpoint",
-            "description": "Create a RESTful API endpoint (`/api/login`) that authenticates users based on their username/email and password, and issues an authentication token (e.g., JWT).",
-            "dependencies": [
-              1,
-              2
-            ],
-            "details": "The endpoint should retrieve the user by username/email from the database (Subtask 1). Use the password hashing module (Subtask 2) to compare the provided password with the stored hash. If successful, generate and return an authentication token (e.g., JWT). Handle invalid credentials with a 401 Unauthorized response.",
-            "status": "pending",
-            "testStrategy": "Unit tests for password comparison logic. Integration tests to verify successful login with correct credentials and failure with incorrect ones. Test token generation and ensure the token is returned in the response."
-          },
-          {
-            "id": 5,
-            "title": "Implement Authentication Token Management System",
-            "description": "Develop a system for generating, validating, and revoking authentication tokens (e.g., JWTs or session IDs) for authenticated users.",
-            "dependencies": [
-              4
-            ],
-            "details": "For JWTs: define token structure (header, payload, signature), implement signing and verification logic, and handle token expiration. For session IDs: manage session records in the database (creation, expiration, lookup). Implement middleware to validate tokens on protected routes.",
-            "status": "pending",
-            "testStrategy": "Unit tests for token generation, expiration, and validation. Integration tests to ensure protected routes are inaccessible without a valid token and accessible with one. Test token revocation/logout functionality."
-          },
-          {
-            "id": 6,
-            "title": "Develop Authenticated User Profile Endpoint",
-            "description": "Create a RESTful API endpoint (`/api/profile`) that allows an authenticated user to retrieve their own non-sensitive profile information.",
-            "dependencies": [
-              1,
-              5
-            ],
-            "details": "This endpoint must be protected by the token management system (Subtask 5). It should extract the user ID from the valid authentication token, query the database (Subtask 1) for the user's non-sensitive profile data (e.g., username, email, creation date), and return it. Do not expose sensitive data like password hashes.",
-            "status": "pending",
-            "testStrategy": "Integration tests: attempt to access without a token (should fail with 401), with an invalid/expired token (should fail with 401), and with a valid token (should succeed and return the correct user data for the authenticated user)."
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 3,
-        "title": "Specialist - Patient Management Module",
-        "description": "Develop functionality for specialists to add, view, and manage their multiple patients. Ensure only specialists can initiate patient connections.",
-        "details": "CRUD operations for patient profiles. Link patients to specific specialists. Implement UI for specialist to add/edit patient details.",
-        "testStrategy": "Verify specialists can add/edit/view their patients. Confirm patients cannot self-assign or be managed by other specialists.",
+        "title": "Specialist - Patient Management & Core Data Entry",
+        "description": "Develop backend and frontend functionality for specialists to add, manage, view, and update patient profiles, including treatments, medications, conditions, and consultation notes.",
+        "details": "Implement CRUD operations for patient profiles. Allow specialists to add, edit, and delete treatments, medications, and conditions associated with a patient. Enable specialists to write and manage consultation summaries and notes for each patient.",
+        "testStrategy": "Verify specialists can create new patient profiles, update existing ones, and delete them. Test adding/editing/deleting treatments, medications, and conditions for patients. Confirm consultation notes can be saved and retrieved.",
         "priority": "high",
         "dependencies": [
+          1,
           2
         ],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Configure Development Environment",
-            "description": "Set up the necessary tools, frameworks, and project structure for both backend and frontend development.",
-            "dependencies": [],
-            "details": "Install Node.js, Python/Django/Flask (for backend), React/Vue/Angular (for frontend), Git, configure virtual environments, create initial project directories and basic configuration files.",
-            "status": "pending",
-            "testStrategy": "Verify successful installation of all tools and creation of basic project structure (e.g., `npm start` for frontend, `python manage.py runserver` for backend) without errors."
-          },
-          {
-            "id": 2,
-            "title": "Design and Implement Database Schema",
-            "description": "Define the data models, relationships, and create the initial database schema based on application requirements.",
-            "dependencies": [
-              1
-            ],
-            "details": "Identify core entities (e.g., Users, Products, Orders), define attributes and relationships, choose a database (e.g., PostgreSQL, SQLite), write ORM models or SQL migration scripts to create tables and define constraints.",
-            "status": "pending",
-            "testStrategy": "Run database migrations, verify table creation and relationships using a database client or ORM shell. Populate with sample data and ensure data integrity."
-          },
-          {
-            "id": 3,
-            "title": "Develop Core Backend API Endpoints",
-            "description": "Build the RESTful API endpoints for data manipulation (CRUD operations) based on the designed database schema.",
-            "dependencies": [
-              1,
-              2
-            ],
-            "details": "Implement endpoints for key resources (e.g., `/api/products`, `/api/users`), integrate with the database using an ORM, handle request validation, error responses, and basic data serialization/deserialization.",
-            "status": "pending",
-            "testStrategy": "Use Postman/Insomnia or write unit/integration tests to verify each API endpoint's functionality (e.g., GET, POST, PUT, DELETE requests) and correct data handling. Ensure proper HTTP status codes are returned."
-          },
-          {
-            "id": 4,
-            "title": "Build Frontend User Interface Components",
-            "description": "Create the interactive user interface components and pages that consume the backend API.",
-            "dependencies": [
-              1,
-              3
-            ],
-            "details": "Design UI/UX mockups, implement reusable React/Vue/Angular components for key views (e.g., product list, detail page, user profile), integrate with the backend API using `fetch` or Axios, manage application state, and implement client-side routing.",
-            "status": "pending",
-            "testStrategy": "Manually test UI interactions, verify data display from API, use browser developer tools to check network requests and console errors. Implement basic component-level unit tests for critical UI elements."
-          },
-          {
-            "id": 5,
-            "title": "Implement User Authentication and Authorization",
-            "description": "Integrate secure user login, registration, and role-based access control mechanisms into both frontend and backend.",
-            "dependencies": [
-              3,
-              4
-            ],
-            "details": "On backend: implement JWT/session-based authentication, create login/register endpoints, add middleware for authorization. On frontend: create login/register forms, manage user sessions/tokens, protect routes and UI elements based on authentication status and user roles.",
-            "status": "pending",
-            "testStrategy": "Test user registration, login, and logout flows. Verify access to protected routes for authenticated vs. unauthenticated users, and for different user roles if applicable. Check token expiry and refresh mechanisms."
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 4,
-        "title": "Specialist - Treatment & Prescription Management",
-        "description": "Implement features for specialists to track patient treatments, medications, and outcomes. Enable specialists to generate and save prescriptions.",
-        "details": "Data models for storing treatment history, medication details, and prescription records. UI for specialists to input and view this data. Prescriptions should be downloadable.",
-        "testStrategy": "Test creation, viewing, and updating of treatments and prescriptions. Verify prescription download functionality.",
-        "priority": "medium",
+        "title": "Patient - Personal Data Access",
+        "description": "Enable patients to securely view their assigned specialists, personal medical data (conditions, treatments, medications, consultation history), and receive instructions.",
+        "details": "Develop patient-facing UI and backend endpoints to display their assigned specialists. Allow patients to view their personal medical data including conditions, treatments, medications, and consultation history. Implement functionality for patients to receive and view instructions and treatment plans.",
+        "testStrategy": "Verify patients can only view their own data and assigned specialists. Test display of all medical history components and instructions. Ensure data integrity and security.",
+        "priority": "high",
         "dependencies": [
+          1,
+          2,
           3
         ],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Initialize Project and Install Dependencies",
-            "description": "Set up the basic project structure for a Node.js backend application and install necessary libraries for API development, database interaction, and authentication.",
-            "dependencies": [],
-            "details": "Create a new project directory, initialize `package.json`. Install `express`, `mongoose` (for MongoDB), `bcrypt` (for password hashing), `jsonwebtoken` (for JWTs), and `dotenv` (for environment variables). Configure a basic server entry point.",
-            "status": "pending",
-            "testStrategy": "Verify all packages are installed correctly by checking `package.json` and `node_modules`. Run a simple server start script to ensure no immediate errors occur."
-          },
-          {
-            "id": 2,
-            "title": "Design and Implement User Database Schema",
-            "description": "Create the database schema and Mongoose model for storing user information, including fields required for authentication.",
-            "dependencies": [
-              1
-            ],
-            "details": "Define a `User` schema with fields: `username` (String, unique, required), `email` (String, unique, required), and `password` (String, required, will store hashed password). Add timestamps for `createdAt` and `updatedAt`. Implement pre-save hooks for password hashing.",
-            "status": "pending",
-            "testStrategy": "Write unit tests for the `User` model to ensure it can create, read, update, and delete user records. Verify unique constraints and required fields. Test password hashing functionality."
-          },
-          {
-            "id": 3,
-            "title": "Implement User Registration Endpoint",
-            "description": "Create an API endpoint that allows new users to register by providing a username, email, and password, ensuring the password is securely hashed before storage.",
-            "dependencies": [
-              1,
-              2
-            ],
-            "details": "Develop a POST endpoint `/api/register`. Validate incoming data (e.g., email format, password strength). Hash the provided password using `bcrypt` before saving the new user to the database. Handle cases where username/email already exist.",
-            "status": "pending",
-            "testStrategy": "Use integration tests (e.g., Supertest) to send POST requests to `/api/register`. Test with valid data, invalid data (missing fields, weak password), and duplicate username/email. Verify user creation in the database and appropriate HTTP responses."
-          },
-          {
-            "id": 4,
-            "title": "Implement User Login and JWT Generation Endpoint",
-            "description": "Create an API endpoint that authenticates existing users based on their credentials and issues a JSON Web Token (JWT) upon successful login.",
-            "dependencies": [
-              1,
-              2,
-              3
-            ],
-            "details": "Develop a POST endpoint `/api/login`. Compare the provided password with the stored hashed password using `bcrypt.compare`. If credentials are valid, generate a JWT using `jsonwebtoken` with the user's ID as the payload. Set an appropriate expiration time for the token.",
-            "status": "pending",
-            "testStrategy": "Use integration tests to send POST requests to `/api/login`. Test with correct credentials, incorrect password, and non-existent user. Verify that a valid JWT is returned on success and appropriate error messages are returned on failure."
-          },
-          {
-            "id": 5,
-            "title": "Develop JWT Authentication Middleware",
-            "description": "Create a reusable middleware function to protect API routes by verifying the presence and validity of a JWT in the request header.",
-            "dependencies": [
-              1,
-              4
-            ],
-            "details": "The middleware should extract the token from the `Authorization` header (Bearer token format). Use `jsonwebtoken.verify` to validate the token. If valid, decode the user ID from the token and attach the user object to the request (`req.user`). Handle cases of missing, invalid, or expired tokens by sending appropriate error responses.",
-            "status": "pending",
-            "testStrategy": "Create a dummy protected route. Send requests to this route with: no token, an invalid token, an expired token, and a valid token. Verify that access is granted only with a valid token and that `req.user` is correctly populated."
-          },
-          {
-            "id": 6,
-            "title": "Implement Protected User Profile Endpoint",
-            "description": "Create a sample API endpoint that demonstrates the use of the JWT authentication middleware to restrict access to authenticated users only.",
-            "dependencies": [
-              5
-            ],
-            "details": "Develop a GET endpoint `/api/profile`. Apply the JWT authentication middleware to this route. Inside the route handler, access the authenticated user's information from `req.user` (populated by the middleware) and return relevant profile data (e.g., username, email).",
-            "status": "pending",
-            "testStrategy": "Use integration tests. Attempt to access `/api/profile` without a token (should result in 401 Unauthorized). Access with a valid token (should result in 200 OK and return the correct user profile data). Access with an invalid/expired token (should result in 403 Forbidden or 401 Unauthorized)."
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 5,
-        "title": "Specialist - Appointment Management & Secure Chat",
-        "description": "Develop features for specialists to view, create, update, or cancel appointments with patients. Implement the secure real-time chat functionality for specialists to communicate with patients.",
-        "details": "Calendar integration for appointment scheduling. Real-time, secure messaging system (e.g., WebSockets) for specialist-patient communication.",
-        "testStrategy": "Verify appointment CRUD operations. Test real-time message sending and receiving between specialist and patient.",
-        "priority": "medium",
+        "title": "Secure Real-time Messaging & Notifications",
+        "description": "Implement end-to-end encrypted real-time chat between patients and specialists, and a notification system for unread messages and appointment changes.",
+        "details": "Integrate WebSocket for real-time messaging. Implement end-to-end encryption for all chat communications. Develop a notification system to alert users about new messages and changes in appointment status.",
+        "testStrategy": "Test real-time message exchange between specialist and patient. Verify message encryption. Test notification delivery for new messages and appointment updates.",
+        "priority": "high",
         "dependencies": [
-          3
+          1,
+          2,
+          3,
+          4
         ],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Define Core System Requirements",
-            "description": "Elicit and document the essential functional and non-functional requirements for the system.",
-            "dependencies": [],
-            "details": "Conduct stakeholder interviews, analyze existing systems (if any), and create a detailed requirements specification document (e.g., user stories, use cases, acceptance criteria). Focus on the primary user flows and critical features.",
-            "status": "pending",
-            "testStrategy": "Review documented requirements with stakeholders for accuracy and completeness. Ensure all requirements are testable."
-          },
-          {
-            "id": 2,
-            "title": "Design System Architecture",
-            "description": "Develop a high-level and low-level architectural design for the system, including technology stack, component breakdown, and data flow.",
-            "dependencies": [
-              1
-            ],
-            "details": "Create architectural diagrams (e.g., context, component, deployment diagrams). Select appropriate technologies (e.g., programming language, framework, database, cloud provider). Define APIs and interfaces between components.",
-            "status": "pending",
-            "testStrategy": "Conduct design reviews with technical leads and architects. Validate design against non-functional requirements (scalability, security, performance)."
-          },
-          {
-            "id": 3,
-            "title": "Implement Database Schema and ORM",
-            "description": "Design and implement the database schema, including tables, relationships, and indices. Integrate an Object-Relational Mapper (ORM) for data access.",
-            "dependencies": [
-              2
-            ],
-            "details": "Based on the architectural design, create SQL DDL scripts or use a migration tool to define the database schema. Configure the chosen ORM (e.g., SQLAlchemy, Hibernate, Entity Framework) to map application models to database tables.",
-            "status": "pending",
-            "testStrategy": "Write unit tests for ORM mappings to ensure correct data serialization/deserialization. Perform schema validation against design documents."
-          },
-          {
-            "id": 4,
-            "title": "Develop Core Backend APIs",
-            "description": "Implement the primary business logic and RESTful API endpoints for the system's core functionalities.",
-            "dependencies": [
-              2,
-              3
-            ],
-            "details": "Develop controllers, services, and data access layers according to the architectural design. Implement authentication, authorization, and input validation. Use chosen backend framework (e.g., Node.js/Express, Python/Django, Java/Spring Boot).",
-            "status": "pending",
-            "testStrategy": "Write comprehensive unit tests for business logic and integration tests for API endpoints (e.g., using Postman, Jest, Pytest). Perform API contract testing."
-          },
-          {
-            "id": 5,
-            "title": "Develop User Interface Components",
-            "description": "Create the necessary frontend components and pages to support the core user flows.",
-            "dependencies": [
-              2,
-              4
-            ],
-            "details": "Implement UI components using the chosen frontend framework (e.g., React, Angular, Vue.js). Integrate with the backend APIs developed in Subtask 4. Ensure responsiveness and accessibility.",
-            "status": "pending",
-            "testStrategy": "Write unit tests for individual UI components. Conduct visual regression testing. Perform manual testing of user flows."
-          },
-          {
-            "id": 6,
-            "title": "Conduct End-to-End System Testing",
-            "description": "Perform comprehensive end-to-end testing to validate the integrated system against the defined requirements.",
-            "dependencies": [
-              4,
-              5
-            ],
-            "details": "Develop and execute automated end-to-end test scripts (e.g., using Selenium, Cypress, Playwright) covering critical user journeys. Conduct performance, security, and usability testing.",
-            "status": "pending",
-            "testStrategy": "Automate critical paths. Involve QA team for exploratory testing. Track and prioritize defects."
-          },
-          {
-            "id": 7,
-            "title": "Prepare for Deployment and Monitoring",
-            "description": "Set up the deployment pipeline, configure infrastructure, and establish monitoring and logging solutions for the production environment.",
-            "dependencies": [
-              6
-            ],
-            "details": "Create CI/CD pipelines (e.g., Jenkins, GitLab CI, GitHub Actions). Configure cloud resources (e.g., VMs, containers, serverless functions). Implement logging (e.g., ELK stack, Splunk) and monitoring (e.g., Prometheus, Grafana, Datadog) dashboards.",
-            "status": "pending",
-            "testStrategy": "Perform dry runs of the deployment process. Verify monitoring alerts and log aggregation. Conduct disaster recovery drills."
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 6,
-        "title": "Patient - Personal Dashboard & Medical History",
-        "description": "Create the patient's personal dashboard to display their medical data, including medical history, ongoing/past treatments, diagnosed conditions, and prescribed medications with downloadable prescriptions.",
-        "details": "Frontend UI for patient dashboard. Data retrieval from backend to populate medical history, treatments, conditions, and medications. Ensure prescriptions are downloadable.",
-        "testStrategy": "Verify patients can view their complete medical data accurately. Test prescription download from the patient dashboard.",
-        "priority": "medium",
+        "title": "Appointment Scheduling & Management",
+        "description": "Develop features for specialists to schedule appointments and for patients to request, confirm, and view their appointments with various statuses.",
+        "details": "Implement backend APIs for specialists to create, update, and cancel appointments. Develop patient-facing functionality to request, confirm, and view their appointments. Manage appointment statuses: requested, scheduled, confirmed, completed, cancelled.",
+        "testStrategy": "Verify specialists can schedule and manage appointments. Test patient's ability to request and confirm appointments. Ensure correct status transitions and visibility for both roles.",
+        "priority": "high",
         "dependencies": [
+          1,
+          2,
+          3,
           4
         ],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Initialize Project Repository and Tools",
-            "description": "Set up the version control repository, configure development tools (IDE, build system), and define initial project structure for a new web application.",
-            "dependencies": [],
-            "details": "Create a Git repository. Set up a virtual environment for Python/Node.js. Configure linters (ESLint, Black) and formatters (Prettier, Flake8). Define basic .gitignore, README.md, and initial project directory structure.",
-            "status": "pending",
-            "testStrategy": "Verify repository is accessible and configured. Run a simple 'hello world' script or linter check to confirm tool setup. Check that `.gitignore` is correctly ignoring specified files."
-          },
-          {
-            "id": 2,
-            "title": "Design Application Database Schema",
-            "description": "Design the relational or NoSQL database schema based on application requirements, including tables/collections, fields, relationships, and indexing strategies.",
-            "dependencies": [
-              1
-            ],
-            "details": "Use an ERD tool or define schema in SQL DDL scripts/ORM models (e.g., SQLAlchemy, Mongoose). Consider normalization, data types, primary/foreign keys, and necessary indexes for performance. Document the schema design.",
-            "status": "pending",
-            "testStrategy": "Review schema design with project stakeholders and database experts. Validate SQL DDL scripts for syntax errors or ORM models for correct field definitions by attempting to apply them to a local database."
-          },
-          {
-            "id": 3,
-            "title": "Develop Core Backend API Endpoints",
-            "description": "Implement the necessary RESTful API endpoints for data manipulation (CRUD operations) and business logic, connecting to the designed database.",
-            "dependencies": [
-              1,
-              2
-            ],
-            "details": "Use a chosen backend framework (e.g., Flask, Node.js Express). Implement authentication/authorization mechanisms. Write unit tests for each endpoint and integrate with the database. Ensure proper error handling and response formatting.",
-            "status": "pending",
-            "testStrategy": "Use Postman/Insomnia or `curl` to manually test each endpoint for correct responses, status codes, and data persistence. Write automated unit and integration tests for all critical API paths."
-          },
-          {
-            "id": 4,
-            "title": "Build Interactive Frontend User Interface",
-            "description": "Create the client-side user interface, consuming data from the backend API and providing an intuitive user experience.",
-            "dependencies": [
-              1,
-              3
-            ],
-            "details": "Use a chosen frontend framework (e.g., React, Vue.js). Implement routing, state management, and component-based UI. Ensure responsiveness across devices and accessibility standards are met. Integrate with the developed backend API.",
-            "status": "pending",
-            "testStrategy": "Perform manual UI testing across different browsers and devices. Implement automated end-to-end tests (e.g., Cypress, Playwright) for critical user flows and interactions. Verify data display and submission."
-          },
-          {
-            "id": 5,
-            "title": "Deploy Application to Staging Environment",
-            "description": "Package and deploy the integrated backend and frontend applications to a staging environment for final testing and stakeholder review.",
-            "dependencies": [
-              3,
-              4
-            ],
-            "details": "Containerize applications using Docker. Set up a basic CI/CD pipeline (e.g., Jenkins, GitLab CI, GitHub Actions) to automate build and deployment. Configure environment variables and database connections for the staging server. Ensure all services are running and communicating correctly.",
-            "status": "pending",
-            "testStrategy": "Verify application accessibility in the staging environment. Conduct smoke tests to ensure core functionalities are working post-deployment. Perform user acceptance testing (UAT) with stakeholders. Monitor logs for any deployment-related errors."
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 7,
-        "title": "Patient - Consultation History & Instructions",
-        "description": "Implement the chronological list of past appointments with summaries and doctor notes for patients. Enable patients to view personalized treatment plans and instructions sent by their specialist.",
-        "details": "UI to display a chronological list of past consultations. Functionality to display treatment plans and instructions provided by the assigned specialist.",
-        "testStrategy": "Verify consultation history is accurate and complete. Test viewing of personalized instructions and guidelines.",
-        "priority": "medium",
+        "title": "Digital Prescriptions & Consultation Summaries",
+        "description": "Implement functionality for specialists to generate and manage digital prescriptions, and for patients to view/download them.",
+        "details": "Develop specialist interface and backend logic for generating digital prescriptions. Ensure prescriptions can be stored, retrieved, and managed. Enable patients to view and download their assigned prescriptions.",
+        "testStrategy": "Verify specialists can create valid digital prescriptions. Test patient's ability to view and download their prescriptions. Ensure data integrity and proper linking to patient records.",
+        "priority": "high",
         "dependencies": [
+          1,
+          2,
+          3,
           4
         ],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design and Implement Database Schema for User Management",
-            "description": "Create the necessary database tables and relationships for storing user information, including authentication credentials and profile details.",
-            "dependencies": [],
-            "details": "Define tables such as 'users' (id, username, email, password_hash, created_at, updated_at, is_active) and 'roles' (id, name) with a many-to-many relationship if role-based access is needed. Use appropriate data types and enforce unique constraints for username and email. Plan for password hashing algorithm (e.g., bcrypt).",
-            "status": "pending",
-            "testStrategy": "Verify table creation and column definitions using database introspection tools. Run simple SQL queries to ensure data types and constraints are correctly applied. Populate with dummy data to check relationships."
-          },
-          {
-            "id": 2,
-            "title": "Develop User Registration API Endpoint",
-            "description": "Implement a RESTful API endpoint that allows new users to register by providing necessary details, securely storing their credentials.",
-            "dependencies": [
-              1
-            ],
-            "details": "Create a POST /api/register endpoint. It should accept username, email, and password. Validate input for uniqueness (username, email) and password complexity. Hash the password using the chosen algorithm before storing. Return appropriate success/error responses (e.g., 201 Created, 400 Bad Request).",
-            "status": "pending",
-            "testStrategy": "Use API testing tools (e.g., Postman, cURL) to send valid and invalid registration requests. Verify user creation in the database. Test edge cases like duplicate usernames/emails, weak passwords, and missing fields. Check HTTP status codes and response bodies."
-          },
-          {
-            "id": 3,
-            "title": "Implement User Login and Session Management API",
-            "description": "Create an API endpoint for user authentication and generate a secure session token (e.g., JWT) upon successful login.",
-            "dependencies": [
-              1
-            ],
-            "details": "Develop a POST /api/login endpoint that accepts username/email and password. Verify the provided password against the stored hash. Upon successful authentication, generate a secure, short-lived access token (e.g., JWT) and optionally a longer-lived refresh token. Return tokens to the client. Handle invalid credentials with appropriate error responses (e.g., 401 Unauthorized).",
-            "status": "pending",
-            "testStrategy": "Test with correct and incorrect credentials. Verify token generation and structure (e.g., JWT claims). Test token expiration. Ensure secure transmission of tokens (HTTPS). Test refresh token flow if implemented. Check error messages for failed login attempts."
-          },
-          {
-            "id": 4,
-            "title": "Develop Authentication Middleware and Protect Routes",
-            "description": "Create middleware to validate authentication tokens on incoming requests and apply it to secure specific API routes, allowing access only to authenticated users.",
-            "dependencies": [
-              3
-            ],
-            "details": "Implement middleware that extracts the authentication token from the request header (e.g., 'Authorization: Bearer <token>'). Validate the token's signature, expiration, and integrity. If valid, attach user information to the request context. Apply this middleware to example protected routes (e.g., GET /api/profile, POST /api/data). Handle unauthorized access (e.g., 401 Unauthorized, 403 Forbidden).",
-            "status": "pending",
-            "testStrategy": "Attempt to access protected routes with no token, an invalid token, an expired token, and a valid token. Verify correct access/denial and appropriate HTTP status codes (401, 403, 200). Test token revocation if implemented. Ensure user context is correctly passed to protected route handlers."
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 8,
-        "title": "Patient - Real-Time Chat Integration",
-        "description": "Integrate the secure direct messaging functionality for patients to communicate with their assigned specialist.",
-        "details": "Patient-side UI for the real-time chat. Ensure secure and direct communication with the assigned specialist only.",
-        "testStrategy": "Test real-time message sending and receiving from the patient's side. Verify chat is only with the assigned specialist.",
-        "priority": "medium",
+        "title": "Compliance & Security Measures",
+        "description": "Ensure the application adheres to GDPR and LOPDGDD, including explicit consent, data encryption, role-based access control, data access/modification/deletion rights, HTTPS, and rate limiting.",
+        "details": "Implement explicit user consent mechanisms for data handling. Ensure all sensitive health data is encrypted at rest and in transit (HTTPS-only). Enforce strict role-based access control. Provide mechanisms for patients to access, modify, or request deletion of their data. Implement rate limiting and audit logging for security.",
+        "testStrategy": "Conduct security audits and penetration testing. Verify data encryption. Test consent flows and data access/deletion requests. Confirm rate limiting prevents abuse.",
+        "priority": "high",
         "dependencies": [
-          5
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
         ],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design and Implement User Database Schema",
-            "description": "Create the necessary database tables (e.g., `users`, `sessions`) with appropriate fields and constraints for user authentication.",
-            "dependencies": [],
-            "details": "Define `users` table with `id`, `username`, `email`, `password_hash`, `salt`, `created_at`, `updated_at`. Define `sessions` table with `id`, `user_id`, `session_token`, `expires_at`, `created_at`. Use appropriate data types, indices, and foreign key constraints.",
-            "status": "pending",
-            "testStrategy": "Verify table creation, column types, primary keys, foreign keys, and unique constraints using database introspection tools or simple insert/select queries to ensure schema integrity."
-          },
-          {
-            "id": 2,
-            "title": "Develop User Registration API Endpoint",
-            "description": "Implement a RESTful API endpoint (`/api/register`) that allows new users to create an account, including password hashing and storage.",
-            "dependencies": [
-              1
-            ],
-            "details": "Endpoint should accept `username`, `email`, `password`. Hash password using a strong, modern algorithm (e.g., bcrypt, Argon2) with a generated salt. Store username, hashed password, and salt in the `users` table. Handle validation for unique username/email and password strength.",
-            "status": "pending",
-            "testStrategy": "Use API testing tools (e.g., Postman, curl) to send valid and invalid registration requests. Verify successful user creation in the database and appropriate error responses for invalid inputs (e.g., duplicate username, weak password, invalid email format)."
-          },
-          {
-            "id": 3,
-            "title": "Implement User Login and Session Management API Endpoint",
-            "description": "Create a RESTful API endpoint (`/api/login`) that authenticates users and manages session tokens.",
-            "dependencies": [
-              1
-            ],
-            "details": "Endpoint should accept `username` (or `email`) and `password`. Retrieve user's stored hash and salt, re-hash provided password, and compare. If successful, generate a secure, unique session token, store it in the `sessions` table with an expiration, and return it to the client.",
-            "status": "pending",
-            "testStrategy": "Test with valid and invalid credentials. Verify session token generation and storage in the database. Test session expiration logic. Ensure appropriate error messages for failed login attempts (e.g., invalid credentials, account locked)."
-          },
-          {
-            "id": 4,
-            "title": "Develop Authentication Middleware and Protected Routes",
-            "description": "Create middleware to validate session tokens for protected API routes and apply it to example routes.",
-            "dependencies": [
-              3
-            ],
-            "details": "The middleware should extract the session token from incoming requests (e.g., from `Authorization` header). Validate the token against the `sessions` table, checking for existence and expiration. If valid, attach user information to the request object; otherwise, return an unauthorized error (HTTP 401). Apply this middleware to at least one example protected route (e.g., `/api/profile`).",
-            "status": "pending",
-            "testStrategy": "Test accessing protected routes with valid, invalid, missing, and expired session tokens. Verify that valid tokens grant access and invalid/missing tokens result in 401 Unauthorized responses. Test token revocation if applicable (e.g., logout functionality)."
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 9,
-        "title": "AI Assistant Integration (Professional & Patient)",
-        "description": "Implement the AI assistant functionalities for both professionals (diagnostic suggestions, insights) and patients (answers, recommendations, general advice).",
-        "details": "Integrate with an AI service (e.g., via API). Develop UI components for AI interaction for both specialist and patient dashboards. This task is to be completed after core features.",
-        "testStrategy": "Test AI assistant's ability to provide relevant suggestions/answers based on input/context for both user types.",
-        "priority": "low",
+        "title": "Responsive UI Development",
+        "description": "Develop the responsive user interfaces for both specialist and patient roles, including dashboards, real-time chat UI, and an appointment calendar.",
+        "details": "Design and implement responsive dashboards tailored for specialists and patients. Build the real-time chat interface. Develop an interactive appointment calendar UI. Ensure consistent styling using Tailwind CSS and responsiveness across various devices.",
+        "testStrategy": "Perform cross-browser and cross-device testing to ensure responsiveness. Verify all UI elements are functional and integrate correctly with backend APIs. Conduct user acceptance testing for usability.",
+        "priority": "high",
         "dependencies": [
+          1,
+          2,
+          3,
+          4,
           5,
-          8
+          6,
+          7
         ],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Set up Database and User Model",
-            "description": "Configure the database connection and define the User schema/model for storing user credentials, including password hashing.",
-            "dependencies": [],
-            "details": "Choose a database (e.g., MongoDB, PostgreSQL) and an ORM/ODM (e.g., Mongoose, Sequelize). Define a `User` model with fields like `username` (unique), `email` (unique), `password` (hashed using bcrypt), and timestamps. Ensure proper indexing for unique fields.",
-            "status": "pending",
-            "testStrategy": "Verify database connection is established. Write unit tests for the User model to ensure fields are correctly defined, uniqueness constraints work, and password hashing functions correctly before saving."
-          },
-          {
-            "id": 2,
-            "title": "Implement JWT Generation and Verification Utilities",
-            "description": "Create helper functions for generating JSON Web Tokens upon successful authentication and verifying them for protected routes.",
-            "dependencies": [],
-            "details": "Use a library like `jsonwebtoken`. Implement `generateToken(payload)` which takes user ID and other necessary data, and `verifyToken(token)` which decodes and validates the token. Ensure the JWT secret is loaded securely from environment variables.",
-            "status": "pending",
-            "testStrategy": "Write unit tests for `generateToken` to ensure a valid token is produced with the correct payload. Test `verifyToken` with valid, invalid, and expired tokens to ensure it correctly identifies and handles each case (e.g., throws specific errors)."
-          },
-          {
-            "id": 3,
-            "title": "Develop User Registration Endpoint",
-            "description": "Create an API endpoint (`POST /api/register`) that allows new users to create an account, hashing their password before storage.",
-            "dependencies": [
-              1,
-              2
-            ],
-            "details": "The endpoint should accept `username`, `email`, and `password`. Validate input data. Hash the password using bcrypt before saving the user to the database. Upon successful registration, generate and return a JWT. Handle cases of duplicate username/email gracefully.",
-            "status": "pending",
-            "testStrategy": "Use integration tests to hit the endpoint. Test with valid data, missing fields, invalid email format, duplicate username/email. Verify that a new user is created in the database and a valid JWT is returned upon success."
-          },
-          {
-            "id": 4,
-            "title": "Develop User Login Endpoint",
-            "description": "Create an API endpoint (`POST /api/login`) that authenticates existing users and issues a JWT upon successful login.",
-            "dependencies": [
-              1,
-              2
-            ],
-            "details": "The endpoint should accept `username` (or `email`) and `password`. Retrieve the user from the database and compare the provided password with the stored hashed password. If credentials are valid, generate and return a JWT. Provide clear error messages for invalid credentials.",
-            "status": "pending",
-            "testStrategy": "Use integration tests. Test with correct credentials, incorrect password, and non-existent user. Verify that a valid JWT is returned for successful logins and appropriate error messages (e.g., 401 Unauthorized) are returned for failed attempts."
-          },
-          {
-            "id": 5,
-            "title": "Implement JWT Authentication Middleware",
-            "description": "Create a middleware function that verifies the JWT from incoming requests and attaches user information to the request object for protected routes.",
-            "dependencies": [
-              2
-            ],
-            "details": "The middleware should extract the token from the `Authorization` header (Bearer token). Use the `verifyToken` utility to validate the token. If valid, decode the payload and attach `req.user = { id: userId }` (or similar) to the request. If invalid or missing, return a 401 Unauthorized or 403 Forbidden response.",
-            "status": "pending",
-            "testStrategy": "Create a dummy protected route. Test accessing it without a token, with an invalid token, with an expired token, and with a valid token. Verify that valid tokens allow access and attach user info, while invalid/missing tokens are rejected with appropriate HTTP status codes."
-          },
-          {
-            "id": 6,
-            "title": "Document Authentication API Endpoints",
-            "description": "Create comprehensive API documentation for the registration, login, and protected routes, including request/response schemas and error codes.",
-            "dependencies": [
-              3,
-              4,
-              5
-            ],
-            "details": "Use a tool like Swagger/OpenAPI or Postman Collections to document the `/api/register`, `/api/login`, and example protected endpoints. Include request body schemas, successful response schemas (including JWT structure), and common error responses (e.g., 400, 401, 403, 409). Provide example requests and responses.",
-            "status": "pending",
-            "testStrategy": "Review the documentation for clarity, accuracy, and completeness. Ensure all parameters, responses, and error cases are covered. Verify that the documented examples work as described by manually testing them against the implemented API."
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 10,
-        "title": "Security, Compliance & Extensibility Refinement",
-        "description": "Review and enhance security measures (HTTPS, data encryption). Ensure compliance readiness (GDPR considerations). Refine architecture for modularity and extensibility (API-first, multi-role support).",
-        "details": "Implement HTTPS, secure data storage, and transmission. Conduct security audits. Document APIs for future mobile/third-party integrations. Ensure architecture supports dynamic feature expansion.",
-        "testStrategy": "Perform security penetration testing. Verify data encryption. Review API documentation and architectural flexibility.",
+        "title": "AI Assistant Module Development",
+        "description": "Design and implement the AI Assistant module for both specialists and patients, providing diagnostic aid and advice based on clinical data and personal history, with interaction logging.",
+        "details": "Develop the backend integration with an AI service (e.g., for diagnostic aid, advice generation). Create UI components for AI interaction for both specialist and patient roles. Implement logging of all AI interactions for review and auditing purposes. This task is to be performed post-core functionality completion.",
+        "testStrategy": "Test AI assistant's ability to provide relevant suggestions based on provided data. Verify all AI interactions are correctly logged. Test accessibility only when specialist is unavailable (for patient AI).",
         "priority": "medium",
         "dependencies": [
           1,
@@ -656,99 +155,16 @@
           5,
           6,
           7,
-          8
+          8,
+          9
         ],
         "status": "pending",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Initialize Project Repository and Environment",
-            "description": "Set up the version control repository, configure basic project structure (frontend/backend folders), and ensure development tools are installed and accessible.",
-            "dependencies": [],
-            "details": "Create a Git repository. Choose a framework (e.g., Node.js/Express for backend, React/Vue for frontend). Initialize `package.json` files. Set up `.gitignore`.",
-            "status": "pending",
-            "testStrategy": "Verify `git status` shows no untracked files, `npm install` runs successfully in both directories, and basic `hello world` scripts can execute."
-          },
-          {
-            "id": 2,
-            "title": "Design and Implement Database Schema",
-            "description": "Define the necessary tables, columns, relationships, and constraints for the application's data storage. Implement the schema in the chosen database system.",
-            "dependencies": [
-              1
-            ],
-            "details": "Use an ORM (e.g., Sequelize, TypeORM, Prisma) or raw SQL migrations. Define tables for `Users`, `Products`, `Orders`, etc. Consider indexing for performance.",
-            "status": "pending",
-            "testStrategy": "Connect to the database and verify that all defined tables and columns exist and have the correct types. Run a simple insert/select query."
-          },
-          {
-            "id": 3,
-            "title": "Implement User Authentication and Authorization Backend",
-            "description": "Develop API endpoints for user registration, login, logout, and token management (e.g., JWT). Implement middleware for protecting routes based on user roles/permissions.",
-            "dependencies": [
-              1,
-              2
-            ],
-            "details": "Use bcrypt for password hashing. Implement JWT generation and verification. Define user roles (e.g., 'admin', 'user').",
-            "status": "pending",
-            "testStrategy": "Use Postman/Insomnia to test registration, login, and access to protected routes with valid/invalid tokens. Verify token expiration."
-          },
-          {
-            "id": 4,
-            "title": "Develop Core Business Logic API Endpoints",
-            "description": "Create RESTful API endpoints for the main application features (e.g., CRUD operations for products, orders, or specific domain entities).",
-            "dependencies": [
-              1,
-              2,
-              3
-            ],
-            "details": "Implement controllers and services for each resource. Ensure proper request validation and error handling. Integrate with the database layer.",
-            "status": "pending",
-            "testStrategy": "Use Postman/Insomnia to test all CRUD operations for each endpoint. Verify correct data persistence and retrieval. Test edge cases (e.g., invalid input)."
-          },
-          {
-            "id": 5,
-            "title": "Develop Core Frontend User Interface",
-            "description": "Build the main user interface components and pages, including navigation, forms, and data display, based on the design mockups.",
-            "dependencies": [
-              1
-            ],
-            "details": "Use a component-based framework (React, Vue, Angular). Implement routing for different pages. Focus on static UI first, without backend integration.",
-            "status": "pending",
-            "testStrategy": "Manually navigate through all pages in a browser. Verify UI responsiveness and component rendering. Use browser developer tools to check for console errors."
-          },
-          {
-            "id": 6,
-            "title": "Integrate Frontend with Backend APIs",
-            "description": "Connect the frontend UI components to the backend API endpoints to fetch, send, and display dynamic data. Handle authentication tokens on the frontend.",
-            "dependencies": [
-              3,
-              4,
-              5
-            ],
-            "details": "Use `fetch` or Axios for API calls. Implement state management for user authentication status and fetched data. Handle loading states and error messages.",
-            "status": "pending",
-            "testStrategy": "Perform end-to-end user flows (e.g., login, create item, view item, logout). Verify data consistency between frontend and backend. Check network requests in browser dev tools."
-          },
-          {
-            "id": 7,
-            "title": "Implement Unit and Integration Tests",
-            "description": "Write comprehensive unit tests for individual functions/components and integration tests for interactions between modules (e.g., API routes, database interactions, component rendering with props).",
-            "dependencies": [
-              3,
-              4,
-              5,
-              6
-            ],
-            "details": "Use testing frameworks like Jest, React Testing Library, Supertest. Aim for good code coverage. Mock external dependencies where necessary for unit tests.",
-            "status": "pending",
-            "testStrategy": "Run all tests using the chosen test runner. Ensure all tests pass. Review code coverage reports. Perform manual regression testing after test implementation."
-          }
-        ]
+        "subtasks": []
       }
     ],
     "metadata": {
-      "created": "2025-07-13T13:19:38.687Z",
-      "updated": "2025-07-13T13:19:38.687Z",
+      "created": "2025-07-16T14:16:50.072Z",
+      "updated": "2025-07-16T14:16:50.072Z",
       "description": "Tasks for master context"
     }
   }

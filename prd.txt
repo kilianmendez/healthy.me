@@ -1,88 +1,162 @@
-Product Requirements Document (PRD)
-==================================
+# Product Requirements Document (PRD)
 
-Medical Tracker App
-Version: 1.0
-Author: [Your Name]
-Date: [Insert Date]
+**Project Title:** Medical Tracker – Personalized Health Monitoring App
+**Version:** 1.0
+**Author:** \[Your Name]
+**Date:** \[Insert Date]
 
-1. Purpose
-----------
-The purpose of this document is to define the product requirements for Medical Tracker, a digital platform that enables healthcare professionals to monitor, personalize, and manage their patients’ treatments while facilitating communication and leveraging AI for smart assistance. The system is built to be modular and scalable to accommodate additional features over time.
+---
 
-2. Target Users
----------------
-2.1. Healthcare Specialists
-- Doctors, therapists, psychologists, and other certified medical professionals.
+## 1. Purpose
 
-2.2. Patients
-- Individuals under the care of the healthcare specialists registered on the platform.
+The purpose of this document is to define the requirements, goals, scope, and design principles for Medical Tracker, an application designed for healthcare specialists to monitor, manage, and personalize patient care. The platform will enable secure and effective collaboration between patients and health professionals, supported by real-time chat and future AI assistance features.
 
-3. Core Features
-----------------
+---
 
-3.1. For Specialists
-- Patient Management:
-  Specialists can add and manage multiple patients. Only specialists can initiate this connection—patients cannot self-assign to specialists.
+## 2. Scope
 
-- Treatment Tracking:
-  View all patient data, including past and current treatments, medications, prescriptions, and treatment outcomes.
+Medical Tracker is a digital health platform enabling:
 
-- AI Assistant (for Professionals):
-  Provides diagnostic suggestions or highlights relevant insights based on patient history and symptoms to support decision-making.
-  NOTE: AI functionality will be added at the end, after all core features are completed.
+* Health specialists to manage multiple patients, monitor their treatments, and adapt care plans.
+* Patients to access their medical history, prescribed treatments, and communicate with specialists.
+* AI integration (to be implemented after core functionality) for both specialists and patients to provide smart assistance based on clinical data.
 
-- Prescription Generation:
-  Specialists can issue prescriptions which are saved in the patient’s medical history.
+---
 
-- Appointment Management:
-  View, create, update, or cancel appointments with patients.
+## 3. Target Users
 
-- Secure Chat:
-  Real-time communication with patients for follow-ups or doubts.
+### 3.1 Specialists:
 
-3.2. For Patients
-- Personal Dashboard:
-  Access to personal medical data, including:
-  - Medical history
-  - Ongoing and past treatments
-  - Diagnosed conditions
-  - Prescribed medications and downloadable prescriptions
+* Doctors
+* Therapists
+* Psychologists
+* Nutritionists
+* Other certified professionals responsible for managing patient treatments (excluding support roles such as nurses, orderlies, etc.)
 
-- Consultation History:
-  Chronological list of past appointments with summaries and doctor notes.
+### 3.2 Patients:
 
-- Instructions & Guidelines:
-  View personalized treatment plans and instructions sent by the specialist.
+* Individuals under care of registered specialists
 
-- AI Assistant (for Patients):
-  Provides answers, recommendations, and general advice when the assigned specialist is unavailable.
-  NOTE: AI functionality will be added at the end, after all core features are completed.
+---
 
-- Real-Time Chat:
-  Secure direct messaging with the assigned specialist.
+## 4. Core Features
 
-4. Technical Stack
-------------------
+### 4.1 User Authentication
 
-Frontend:       Next.js
-Styling:        Tailwind CSS
-Backend:        Python (FastAPI)
-Database:       MongoDB
+* Role-based access (specialist or patient)
+* Secure login (email + password)
+* JWT-based authentication tokens
 
-The app must be highly modular and extensible, allowing for seamless addition of new roles and features over time.
+### 4.2 Specialist Features
 
-5. Flexibility & Future Scope
------------------------------
-- Allow dynamic feature expansion (e.g. new modules for analytics, reports, etc.).
-- Support multi-role architecture with clear role boundaries.
-- Be API-first to allow possible mobile app development or third-party integrations in the future.
-- Incorporate AI features that can evolve, including natural language processing, treatment optimization, or predictive analytics.
+* Add/manage patients (one-directional: only specialists can initiate the relationship)
+* View full medical profile of each patient
+* Add/edit/delete treatments, medications, and conditions
+* View treatment progress and outcomes
+* Generate digital prescriptions
+* Schedule and manage appointments
+* Write consultation summaries and notes
+* Real-time secure messaging with patients
+* AI Assistant (post-launch): diagnostic aid based on patient data
 
-6. Security & Compliance (Future Consideration)
------------------------------------------------
-- Data must be securely stored and transmitted (JWT-based auth, HTTPS).
-- Sensitive health data handling must follow compliance standards (GDPR).
-- Role-based access control (RBAC) will be implemented to ensure data is only accessible by authorized users.
+### 4.3 Patient Features
 
+* View assigned specialists
+* Access personal medical data:
 
+  * Conditions
+  * Treatments
+  * Medications
+  * Consultation history
+* View/download prescriptions
+* Receive instructions and treatment plans
+* Real-time secure messaging with assigned specialists
+* AI Assistant (post-launch): advice based on personal history and clinical context
+
+### 4.4 Communication
+
+* End-to-end encrypted messaging between patient and specialist
+* Notifications for unread messages and appointment changes
+
+### 4.5 Appointments
+
+* Specialist schedules appointments
+* Patients can request and confirm appointments
+* Statuses: requested, scheduled, confirmed, completed, cancelled
+
+### 4.6 AI Assistant (Post-core phase)
+
+* Accessible only when specialist is unavailable
+* Uses historical consultations and diagnoses to suggest advice
+* Logs all AI interactions for review
+
+---
+
+## 5. Technical Specifications
+
+### Frontend:
+
+* Framework: **Next.js**
+* Styling: **Tailwind CSS**
+* Features:
+
+  * Responsive UI
+  * Dashboard for both roles
+  * Real-time chat UI
+  * Appointment calendar
+
+### Backend:
+
+* Framework: **Python (FastAPI)**
+* API-first design with JWT authentication
+* Modular endpoints for users, treatments, messages, etc.
+
+### Database:
+
+* **MongoDB**
+* Collections: users, patients, appointments, prescriptions, messages, consultations, instructions, ai\_logs
+* Indexed fields: email, user role, timestamps, patient-specialist relationships
+
+---
+
+## 6. Compliance & Legal
+
+* Follows **GDPR** and **LOPDGDD** (Spain):
+
+  * Explicit consent for data handling
+  * Role-based access control
+  * Data encryption
+  * Patient right to access, modify or delete data
+* All health data stored in **EU-based** servers
+
+---
+
+## 7. Flexibility & Future Scope
+
+* Modular system architecture to allow new features
+* Easily extendable to mobile apps using same backend APIs
+* Future roles (e.g., lab technicians, admin staff)
+* Analytics and reporting modules
+* AI upgrades (predictive models, NLP summaries)
+
+---
+
+## 9. Non-Functional Requirements
+
+* Performance: Fast responses (<300ms average per API call)
+* Security: HTTPS-only, rate limiting, audit logging
+* Availability: 99.9% uptime
+* Scalability: Horizontal scaling of backend and DB
+
+---
+
+## 10. Assumptions
+
+* Users will have access to smartphones or computers
+* Internet connection is required
+* Only verified professionals may register as specialists
+* AI functionality will be integrated **after** all other modules are complete
+
+---
+
+**End of PRD Document**
