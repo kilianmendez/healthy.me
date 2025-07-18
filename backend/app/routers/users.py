@@ -1,19 +1,22 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
-from schemas.user import User, UserOut, UserCreate, Specialist, SpecialistCreate, Patient
+from passlib.context import CryptContext
+from schemas.user import User, UserOut, UserCreate
 from db.models.user import individual_serial, list_serial
 from db.client import collection_name
 from bson import ObjectId
 from typing import List
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import os
 
 router = APIRouter()
 
-SECRET_KEY = os.getenv("JWT_SECRET", "your-secret-key")  # Change in production
+SECRET_KEY = "g745j7tcgcg4htc834qc8ct934ht3"  # Change in production
 ALGORITHM = "HS256"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+crypt = CryptContext(schemes=["bcrypt"])
 
 # ----------Functions-----------
 def convert_dates_to_datetime(data):
@@ -26,6 +29,17 @@ def convert_dates_to_datetime(data):
         return datetime.combine(data, datetime.min.time())
     else:
         return data
+
+def search_user_db(username: str):
+    user = collection_name.find_one({"username": username})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return individual_serial(user)
+
+
 # -------------------------------
 
 
@@ -57,39 +71,40 @@ async def create_user(user: UserCreate):
     user_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
     user_dict = convert_dates_to_datetime(user_dict)
     user_dict["_id"] = ObjectId()
+    user_dict["password"] = crypt.hash(user_dict["password"])
     collection_name.insert_one(user_dict)
     user_dict["id"] = str(user_dict["_id"])
     return UserOut(**user_dict)
 
-# ---------------Specialist----------------
+@router.post("/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = collection_name.find_one({"username": form_data.username})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    # Verify password
+    if not crypt.verify(form_data.password, user["password"]):
+        print("Incorrect passworddont match")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Generate JWT token
+    access_token = jwt.encode(
+        {"sub": user["_id"], "exp": datetime.utcnow() + timedelta(minutes=30)},
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user
+    }
 
-@router.post("/specialist/", response_model=Specialist, status_code=status.HTTP_201_CREATED)
-async def create_specialist(specialist: SpecialistCreate):
-    """
-    Create a new specialist.
-    """
-    specialist_dict = specialist.dict()
-    specialist_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
-    specialist_dict = convert_dates_to_datetime(specialist_dict)
-    specialist_dict["_id"] = ObjectId()
-    collection_name.insert_one(specialist_dict)
-    specialist_dict["id"] = str(specialist_dict["_id"])
-    return Specialist(**specialist_dict)
 
-@router.get("/specialist/{specialist_id}", response_model=Specialist)
-async def get_specialist(specialist_id: str):
-    """
-    Retrieve a specific specialist by ID.
-    """
-    specialist = collection_name.find_one({"_id": ObjectId(specialist_id), "role": "specialist"})
-    if not specialist:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialist not found")
-    return individual_serial(specialist)
-
-@router.get("/specialists/", response_model=List[Specialist])
-async def get_specialists():
-    """
-    Retrieve a list of all specialists.
-    """
-    specialists = collection_name.find({"role": "specialist"})
-    return list_serial(specialists)
+    

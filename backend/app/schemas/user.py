@@ -39,33 +39,8 @@ class UserOut(User):
 
 class UserCreate(User):
     password: str  # Contraseña del usuario, necesaria para el registro
+
+class UserDb(User):
+    id: str
+    password: str
 # ---------------------------
-
-# ----------Patient----------
-class Patient(User):
-    role: UserRole = UserRole.patient
-    phone_number: Optional[str] = None  # Número de teléfono
-    emergency_contact: Optional[str] = None  # Contacto de emergencia
-    conditions: Optional[List[Condition]] = []
-    treatments: Optional[List[Treatment]] = []
-    medications: Optional[List[Medication]] = []
-    allergies: Optional[List[str]] = []  # Alergias conocidas
-    appointments: Optional[List[str]] = []  # IDs de citas/appointments
-    consultation_history: Optional[List[Consultation]] = []
-    prescriptions: Optional[List[Medication]] = []  # Recetas digitales generadas
-
-# ----------Specialist----------
-class Specialist(User):
-    role: UserRole = UserRole.specialist
-    workplaces: Optional[List[str]] = []  # Lugar de trabajo del especialista
-    available_hours: Optional[str] = None  # Horas disponibles para consultas
-    specialties: Optional[List[str]] = []  # Especialidades del especialista
-    biography: Optional[str] = None  # Biografía del especialista
-    certifications: Optional[List[str]] = []  # Certificaciones del especialista
-    patients: Optional[List[str]] = []  # IDs de pacientes asignados
-    appointments: Optional[List[str]] = []  # IDs de citas/appointments
-    prescriptions: Optional[List[Medication]] = []  # Recetas digitales generadas
-    consultation_history: Optional[List[Consultation]] = []  # Consultas realizadas
-
-class SpecialistCreate(Specialist):
-    password: str  # Contraseña del especialista, necesaria para el registro
