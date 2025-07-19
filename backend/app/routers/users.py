@@ -4,7 +4,7 @@ import jwt
 from passlib.context import CryptContext
 from schemas.user import User, UserOut, UserCreate
 from db.models.user import individual_serial, list_serial
-from db.client import collection_name
+from db.client import users_collection
 from bson import ObjectId
 from typing import List
 from datetime import datetime, date, timedelta
@@ -25,7 +25,7 @@ def convert_dates_to_datetime(data):
         return data
 
 def search_user_db(username: str):
-    user = collection_name.find_one({"username": username})
+    user = users_collection.find_one({"username": username})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -41,7 +41,7 @@ async def get_users():
     """
     Retrieve a list of all users.
     """
-    users = collection_name.find()
+    users = users_collection.find()
     return list_serial(users)
 
 @router.get("/{user_id}", response_model=UserOut)
@@ -49,7 +49,7 @@ async def get_user(user_id: str):
     """
     Retrieve a specific user by ID.
     """
-    user = collection_name.find_one({"_id": ObjectId(user_id)})
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return individual_serial(user)

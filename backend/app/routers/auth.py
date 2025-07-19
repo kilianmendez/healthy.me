@@ -4,7 +4,7 @@ import jwt
 from passlib.context import CryptContext
 from schemas.user import User, UserOut, UserCreate
 from db.models.user import individual_serial, list_serial
-from db.client import collection_name
+from db.client import users_collection
 from bson import ObjectId
 from typing import List
 from datetime import datetime, date, timedelta
@@ -31,7 +31,7 @@ def convert_dates_to_datetime(data):
         return data
 
 def search_user_db(username: str):
-    user = collection_name.find_one({"username": username})
+    user = users_collection.find_one({"username": username})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -56,7 +56,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     except jwt.PyJWTError:
         raise credentials_exception
 
-    user = collection_name.find_one({"_id": ObjectId(user_id)})
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
     if user is None:
         raise credentials_exception
 
@@ -79,7 +79,7 @@ async def read_users_me(current_user: dict = Depends(get_current_user)):
 
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = collection_name.find_one({"username": form_data.username})
+    user = users_collection.find_one({"username": form_data.username})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -108,7 +108,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.post("/register", response_model=UserOut, status_code=201)
 async def register(user: UserCreate):
-    existing = collection_name.find_one({"username": user.username})
+    existing = users_collection.find_one({"username": user.username})
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
 
@@ -119,7 +119,7 @@ async def register(user: UserCreate):
 
     user_dict = convert_dates_to_datetime(user_dict)
 
-    collection_name.insert_one(user_dict)
+    users_collection.insert_one(user_dict)
     user_dict["id"] = str(user_dict["_id"])
     return UserOut(**user_dict)
 

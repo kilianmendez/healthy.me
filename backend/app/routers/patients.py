@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from schemas.patient import Patient, PatientCreate, PatientOut, PatientUpdate
 from db.models.user import individual_serial, list_serial
-from db.client import collection_name
+from db.client import users_collection
 from bson import ObjectId
 from typing import List
 from datetime import datetime, date
@@ -32,7 +32,7 @@ async def create_patient(patient: PatientCreate):
     patient_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
     patient_dict = convert_dates_to_datetime(patient_dict)
     patient_dict["_id"] = ObjectId()
-    collection_name.insert_one(patient_dict)
+    users_collection.insert_one(patient_dict)
     patient_dict["id"] = str(patient_dict["_id"])
     return PatientOut(**patient_dict)
 
@@ -41,7 +41,7 @@ async def get_patient(patient_id: str):
     """
     Retrieve a specific patient by ID.
     """
-    patient = collection_name.find_one({"_id": ObjectId(patient_id), "role": "patient"})
+    patient = users_collection.find_one({"_id": ObjectId(patient_id), "role": "patient"})
     if not patient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
     return individual_serial(patient)
@@ -51,7 +51,7 @@ async def get_patients():
     """
     Retrieve a list of all patients.
     """
-    patients = collection_name.find({"role": "patient"})
+    patients = users_collection.find({"role": "patient"})
     return list_serial(patients)
 
 from datetime import datetime
@@ -65,7 +65,7 @@ async def update_patient(patient_id: str, patient_update: PatientUpdate):
     update_data["updated_at"] = datetime.utcnow().date()
     update_data = convert_dates_to_datetime(update_data)
     
-    result = collection_name.find_one_and_update(
+    result = users_collection.find_one_and_update(
         {"_id": ObjectId(patient_id), "role": "patient"},
         {"$set": update_data},
         return_document=True
@@ -82,7 +82,7 @@ async def delete_patient(patient_id: str):
     """
     Delete a patient by ID.
     """
-    result = collection_name.delete_one({"_id": ObjectId(patient_id), "role": "patient"})
+    result = users_collection.delete_one({"_id": ObjectId(patient_id), "role": "patient"})
     if result.deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
     return {"detail": "Patient deleted successfully"}

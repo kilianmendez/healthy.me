@@ -9,21 +9,32 @@ class TreatmentStatus(str, Enum):
     completed = "completed"
     planned = "planned"
     cancelled = "cancelled"
-
-class TreatmentType(str, Enum):
-    medication = "medication"
-    therapy = "therapy"
-    surgery = "surgery"
 # ---------------------------
 
 # ----------Schemas----------
 class Treatment(BaseModel):
     name: str
     description: Optional[str] = None
-    prescribing_specialist: Optional[str] = None
-    specialist_observations: Optional[str] = None
-    type: TreatmentType = TreatmentType.medication
+    observations: Optional[str] = None
+    type: Optional[str] = None  # e.g., "physical therapy", "surgery", etc.
+    prescribed_by: Optional[str] = None  # ID of the specialist who prescribed
+    prescribed_to: Optional[str] = None  # ID of the patient
     status: TreatmentStatus = TreatmentStatus.ongoing
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    outcome: Optional[str] = None
+
+class TreatmentOut(Treatment):
+    id: str  # ID of the treatment, necessary for the output model
+
+class TreatmentUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    observations: Optional[str] = None
+    type: Optional[str] = None
+    prescribed_by: Optional[str] = None
+    prescribed_to: Optional[str] = None
+    status: Optional[TreatmentStatus] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     outcome: Optional[str] = None
