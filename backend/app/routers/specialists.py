@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut
+from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut, SpecialistUpdate
 from db.models.user import individual_serial, list_serial
 from db.client import collection_name
 from bson import ObjectId
@@ -22,8 +22,7 @@ def convert_dates_to_datetime(data):
         return data
 # -------------------------------
 
-# ---------------Specialist----------------
-
+# ---------------Endpoints----------------
 @router.post("/", response_model=Specialist, status_code=status.HTTP_201_CREATED)
 async def create_specialist(specialist: SpecialistCreate):
     """
@@ -55,3 +54,37 @@ async def get_specialists():
     specialists = collection_name.find({"role": "specialist"})
     return list_serial(specialists)
 
+@router.put("/{specialist_id}", response_model=SpecialistOut)
+async def update_specialist(specialist_id: str, specialist_update: SpecialistUpdate):
+    """
+    Update an existing specialist's information.
+    """
+    update_data = specialist_update.dict(exclude_unset=True)
+    update_data["updated_at"] = datetime.utcnow().date()
+    update_data = convert_dates_to_datetime(update_data)
+
+    result = collection_name.find_one_and_update(
+        {"_id": ObjectId(specialist_id), "role": "specialist"},
+        {"$set": update_data},
+        return_document=True
+    )
+
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialist not found")
+
+    result["id"] = str(result["_id"])
+    return SpecialistOut(**result)
+
+@router.delete("/{specialist_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_specialist(specialist_id: str):
+    """
+    Delete a specialist by ID.
+    """
+    result = collection_name.delete_one({"_id": ObjectId(specialist_id), "role": "specialist"})
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialist not found")
+
+    return {"message": "Specialist deleted successfully"}
+
+# -------------------------------

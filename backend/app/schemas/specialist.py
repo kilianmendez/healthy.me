@@ -39,3 +39,30 @@ class SpecialistCreate(Specialist):
 
 class SpecialistOut(Specialist):
     id: str  # ID del especialista, necesario para la salida del modelo
+
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from datetime import date
+from .medication import Medication
+from .consultation import Consultation
+from .specialist import Gender
+
+class SpecialistUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    gender: Optional[Gender] = None
+    date_of_birth: Optional[date] = None
+    disabled: Optional[bool] = None
+    updated_at: Optional[date] = None
+    avatar_url: Optional[str] = None
+
+    workplaces: Optional[List[str]] = None
+    available_hours: Optional[str] = None
+    specialties: Optional[List[str]] = None
+    biography: Optional[str] = None
+    certifications: Optional[List[str]] = None
+    patients: Optional[List[str]] = None
+    appointments: Optional[List[str]] = None
+    prescriptions: Optional[List[Medication]] = None
+    consultation_history: Optional[List[Consultation]] = None

@@ -38,3 +38,31 @@ class PatientCreate(Patient):
 
 class PatientOut(Patient):
     id: str  # ID del paciente, necesario para la salida del modelo
+
+from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from datetime import date
+from .condition import Condition
+from .treatment import Treatment
+from .medication import Medication
+from .consultation import Consultation
+from .patient import Gender
+
+class PatientUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    gender: Optional[Gender] = None
+    date_of_birth: Optional[date] = None
+    disabled: Optional[bool] = None
+    updated_at: Optional[date] = None
+    avatar_url: Optional[str] = None
+    phone_number: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    conditions: Optional[List[Condition]] = None
+    treatments: Optional[List[Treatment]] = None
+    medications: Optional[List[Medication]] = None
+    allergies: Optional[List[str]] = None
+    appointments: Optional[List[str]] = None
+    consultation_history: Optional[List[Consultation]] = None
+    prescriptions: Optional[List[Medication]] = None
