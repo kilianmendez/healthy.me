@@ -23,4 +23,14 @@ class Condition(BaseModel):
 
 class ConditionOut(Condition):
     id: str
+
+class ConditionUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    symptoms: Optional[List[str]] = None
+    observations: Optional[str] = None
+    diagnosed_by: Optional[str] = None  # ID of the specialist who diagnosed
+    diagnosed_to: Optional[str] = None  # ID of the patient
+    diagnosed_at: Optional[date] = None
+    status: Optional[ConditionStatus] = None
 # ---------------------------

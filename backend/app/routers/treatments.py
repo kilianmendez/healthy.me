@@ -7,6 +7,7 @@ from bson import ObjectId
 from typing import List
 from datetime import datetime, date, timedelta
 import os
+from .auth import get_current_user
 
 router = APIRouter()
 
@@ -20,11 +21,19 @@ def convert_dates_to_datetime(data):
         return datetime.combine(data, datetime.min.time())
     else:
         return data
+    
+def only_specialists(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "specialist":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to perform this action"
+        )
+    return current_user
 # -------------------------------
 
 # ----------Endpoints-----------
 @router.post("/", response_model=TreatmentOut, status_code=status.HTTP_201_CREATED)
-async def create_treatment(treatment: Treatment):
+async def create_treatment(treatment: Treatment, current_user: dict = Depends(only_specialists)):
     """Create a new treatment."""
     treatment_data = treatment.dict()
 
@@ -69,7 +78,7 @@ async def get_treatment(treatment_id: str):
     return TreatmentOut(id=str(treatment["_id"]), **treatment)
 
 @router.put("/{treatment_id}", response_model=TreatmentOut)
-async def update_treatment(treatment_id: str, treatment_update: TreatmentUpdate):
+async def update_treatment(treatment_id: str, treatment_update: TreatmentUpdate, current_user: dict = Depends(only_specialists)):
     """Update an existing treatment's information."""
     update_data = treatment_update.dict(exclude_unset=True)
     update_data["updated_at"] = datetime.utcnow()
@@ -88,7 +97,7 @@ async def update_treatment(treatment_id: str, treatment_update: TreatmentUpdate)
     return TreatmentOut(**result)
 
 @router.delete("/{treatment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_treatment(treatment_id: str):
+async def delete_treatment(treatment_id: str, current_user: dict = Depends(only_specialists)):
     """Delete a treatment by its ID."""
     result = treatments_collection.delete_one({"_id": ObjectId(treatment_id)})
     if result.deleted_count == 0:

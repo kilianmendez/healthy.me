@@ -7,6 +7,7 @@ def individual_serial(treatment) -> dict:
         "type": treatment.get("type"),
         "prescribed_by": treatment.get("prescribed_by"),
         "prescribed_to": treatment.get("prescribed_to"),
+        "prescriptions": [str(prescription) for prescription in treatment.get("prescriptions", [])],
         "status": treatment.get("status", "ongoing"),
         "start_date": treatment.get("start_date").isoformat() if treatment.get("start_date") else None,
         "end_date": treatment.get("end_date").isoformat() if treatment.get("end_date") else None,

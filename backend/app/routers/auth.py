@@ -9,6 +9,7 @@ from bson import ObjectId
 from typing import List
 from datetime import datetime, date, timedelta
 import os
+from utils.security import validate_password_strength
 
 router = APIRouter()
 
@@ -108,9 +109,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.post("/register", response_model=UserOut, status_code=201)
 async def register(user: UserCreate):
-    existing = users_collection.find_one({"username": user.username})
+    existing = users_collection.find_one({"email": user.email})
     if existing:
-        raise HTTPException(status_code=400, detail="Username already exists")
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    validate_password_strength(user.password)
 
     user_dict = user.dict()
     user_dict["_id"] = ObjectId()
@@ -122,6 +125,46 @@ async def register(user: UserCreate):
     users_collection.insert_one(user_dict)
     user_dict["id"] = str(user_dict["_id"])
     return UserOut(**user_dict)
+
+@router.put("/toggle-admin/{user_id}", response_model=UserOut)
+async def toggle_admin_role(user_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Toggle the admin role of a user.
+    """
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para modificar roles"
+        )
+
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+    current_role = user.get("role", "patient")
+    new_role = "patient" if current_role == "admin" else "admin"
+
+    updated = users_collection.find_one_and_update(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"role": new_role, "updated_at": datetime.utcnow()}},
+        return_document=True
+    )
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Error al actualizar el usuario")
+
+    updated["id"] = str(updated["_id"])
+    updated.pop("_id", None)
+    updated.pop("password", None)
+
+    # ✅ Solución: convertir a date exacto
+    if "updated_at" in updated and isinstance(updated["updated_at"], datetime):
+        updated["updated_at"] = updated["updated_at"].date()
+    if "created_at" in updated and isinstance(updated["created_at"], datetime):
+        updated["created_at"] = updated["created_at"].date()
+
+    return UserOut(**updated)
+
+
 
 
 
