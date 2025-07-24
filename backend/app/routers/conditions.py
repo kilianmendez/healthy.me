@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, status
-from schemas.condition import Condition, ConditionOut, ConditionUpdate
+from schemas.condition import Condition, ConditionOut, ConditionStatus, ConditionUpdate
 from db.client import conditions_collection
 from bson import ObjectId
 from typing import List
 from datetime import datetime, date
+from typing import Optional
+
 
 router = APIRouter()
 
@@ -42,6 +44,72 @@ async def create_condition(condition: Condition):
     convert_datetime_to_date_fields(created, ["diagnosed_at"])
 
     return ConditionOut(id=str(created["_id"]), **created)
+
+@router.get("/search", response_model=List[ConditionOut])
+async def search_conditions(
+    diagnosed_to: Optional[str] = None,
+    diagnosed_by: Optional[str] = None,
+    status: Optional[ConditionStatus] = None,
+    name: Optional[str] = None,
+    diagnosed_at_from: Optional[date] = None,
+    diagnosed_at_to: Optional[date] = None,
+    skip: int = 0,
+    limit: int = 10
+):
+    """Search conditions with optional filters."""
+    query = {}
+
+    if diagnosed_to:
+        query["diagnosed_to"] = diagnosed_to
+
+    if diagnosed_by:
+        query["diagnosed_by"] = diagnosed_by
+
+    if status:
+        query["status"] = status
+
+    if name:
+        regex = ".*" + ".*".join(name) + ".*"
+        query["name"] = {"$regex": regex, "$options": "i"}
+
+    if diagnosed_at_from or diagnosed_at_to:
+        query["diagnosed_at"] = {}
+        if diagnosed_at_from:
+            query["diagnosed_at"]["$gte"] = datetime.combine(diagnosed_at_from, datetime.min.time())
+        if diagnosed_at_to:
+            query["diagnosed_at"]["$lte"] = datetime.combine(diagnosed_at_to, datetime.min.time())
+
+    conditions = conditions_collection.find(query).skip(skip).limit(limit)
+    result = []
+    for c in conditions:
+        convert_datetime_to_date_fields(c, ["diagnosed_at"])
+        result.append(ConditionOut(id=str(c["_id"]), **c))
+
+    return result
+
+@router.get("/by-patient/{patient_id}", response_model=List[ConditionOut])
+async def get_conditions_by_patient(patient_id: str, skip: int = 0, limit: int = 10):
+    """Get all medical conditions for a specific patient."""
+    conditions = conditions_collection.find({"diagnosed_to": patient_id}).skip(skip).limit(limit)
+    
+    result = []
+    for c in conditions:
+        convert_datetime_to_date_fields(c, ["diagnosed_at"])
+        result.append(ConditionOut(id=str(c["_id"]), **c))
+    
+    return result
+
+@router.get("/by-specialist/{specialist_id}", response_model=List[ConditionOut])
+async def get_conditions_by_specialist(specialist_id: str, skip: int = 0, limit: int = 10):
+    """Get all medical conditions diagnosed by a specific specialist."""
+    conditions = conditions_collection.find({"diagnosed_by": specialist_id}).skip(skip).limit(limit)
+    
+    result = []
+    for c in conditions:
+        convert_datetime_to_date_fields(c, ["diagnosed_at"])
+        result.append(ConditionOut(id=str(c["_id"]), **c))
+    
+    return result
 
 @router.get("/", response_model=List[ConditionOut])
 async def get_conditions(skip: int = 0, limit: int = 10):
@@ -84,5 +152,9 @@ async def delete_condition(condition_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Condition not found")
     return {"message": "Condition deleted successfully"}
+
+
+
+
 
 # -------------------------------

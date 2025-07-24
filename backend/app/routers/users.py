@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
 from passlib.context import CryptContext
-from schemas.user import User, UserOut, UserCreate
+from schemas.user import User, UserOut, UserCreate, UserRole, Gender
 from db.models.user import individual_serial, list_serial
 from db.client import users_collection
 from bson import ObjectId
@@ -12,6 +12,8 @@ import os
 from .auth import get_current_user
 import re
 from utils.security import validate_password_strength
+from fastapi import Query
+from typing import Optional
 
 router = APIRouter()
 
@@ -19,7 +21,6 @@ crypt = CryptContext(schemes=["bcrypt"])
 
 # ----------Functions-----------
 def convert_dates_to_datetime(data):
-    from datetime import datetime, date
     if isinstance(data, dict):
         return {k: convert_dates_to_datetime(v) for k, v in data.items()}
     elif isinstance(data, list):
@@ -49,6 +50,72 @@ async def get_users(current_user: dict = Depends(get_current_user)):
     for user in users:
         user["id"] = str(user["_id"])
         
+        if "updated_at" in user and isinstance(user["updated_at"], datetime):
+            user["updated_at"] = user["updated_at"].date()
+        if "created_at" in user and isinstance(user["created_at"], datetime):
+            user["created_at"] = user["created_at"].date()
+
+        result.append(UserOut(**user))
+
+    return result
+
+@router.get("/search", response_model=List[UserOut])
+async def search_users(
+    username: Optional[str] = Query(None, description="Username to search (partial, case-insensitive)"),
+    email: Optional[str] = Query(None, description="Email to search (partial, case-insensitive)"),
+    full_name: Optional[str] = Query(None, description="Full name to search (partial, case-insensitive)"),
+    gender: Optional[Gender] = Query(None, description="Gender filter"),
+    date_of_birth: Optional[date] = Query(None, description="Exact date of birth"),
+    role: Optional[UserRole] = Query(None, description="User role"),
+    disabled: Optional[bool] = Query(None, description="Filter by disabled status"),
+    created_at: Optional[date] = Query(None, description="Exact creation date"),
+    updated_at: Optional[date] = Query(None, description="Exact last update date"),
+    avatar_url: Optional[str] = Query(None, description="Avatar URL to search (partial, case-insensitive)"),
+    current_user: dict = Depends(get_current_user)
+):
+    
+    if current_user["role"] != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can access this resource"
+        )
+
+    query = {}
+
+    if username:
+        query["username"] = {"$regex": re.escape(username), "$options": "i"}
+    if email:
+        query["email"] = {"$regex": re.escape(email), "$options": "i"}
+    if full_name:
+        query["full_name"] = {"$regex": re.escape(full_name), "$options": "i"}
+    if gender:
+        query["gender"] = gender.value
+    if date_of_birth:
+        # Convert date to datetime for matching in DB
+        dt_start = datetime.combine(date_of_birth, datetime.min.time())
+        dt_end = datetime.combine(date_of_birth, datetime.max.time())
+        query["date_of_birth"] = {"$gte": dt_start, "$lte": dt_end}
+    if role:
+        query["role"] = role.value
+    if disabled is not None:
+        query["disabled"] = disabled
+    if created_at:
+        dt_start = datetime.combine(created_at, datetime.min.time())
+        dt_end = datetime.combine(created_at, datetime.max.time())
+        query["created_at"] = {"$gte": dt_start, "$lte": dt_end}
+    if updated_at:
+        dt_start = datetime.combine(updated_at, datetime.min.time())
+        dt_end = datetime.combine(updated_at, datetime.max.time())
+        query["updated_at"] = {"$gte": dt_start, "$lte": dt_end}
+    if avatar_url:
+        query["avatar_url"] = {"$regex": re.escape(avatar_url), "$options": "i"}
+
+    users_cursor = users_collection.find(query)
+
+    result = []
+    for user in users_cursor:
+        user["id"] = str(user["_id"])
+
         if "updated_at" in user and isinstance(user["updated_at"], datetime):
             user["updated_at"] = user["updated_at"].date()
         if "created_at" in user and isinstance(user["created_at"], datetime):

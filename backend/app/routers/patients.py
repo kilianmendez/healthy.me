@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from schemas.patient import Patient, PatientCreate, PatientOut, PatientUpdate
 from db.models.user import individual_serial, list_serial
 from utils.security import validate_password_strength
@@ -8,6 +8,7 @@ from typing import List
 from datetime import datetime, date
 from .auth import get_current_user
 from passlib.context import CryptContext
+from typing import Optional
 
 router = APIRouter()
 crypt = CryptContext(schemes=["bcrypt"])
@@ -50,6 +51,41 @@ async def create_patient(patient: PatientCreate):
     users_collection.insert_one(patient_dict)
     patient_dict["id"] = str(patient_dict["_id"])
     return Patient(**patient_dict)
+
+@router.get("/search", response_model=List[PatientOut])
+async def search_patients(
+    username: Optional[str] = Query(None, description="Search by username (partial, case-insensitive)"),
+    email: Optional[str] = Query(None, description="Search by email (partial, case-insensitive)"),
+    phone_number: Optional[str] = Query(None, description="Search by phone number (partial)"),
+    emergency_contact: Optional[str] = Query(None, description="Search by emergency contact (partial)"),
+    full_name: Optional[str] = Query(None, description="Search by full name (partial, case-insensitive)"),
+):
+    query = {"role": "patient"}
+
+    if username:
+        query["username"] = {"$regex": username, "$options": "i"}
+
+    if email:
+        query["email"] = {"$regex": email, "$options": "i"}
+
+    if phone_number:
+        query["phone_number"] = {"$regex": phone_number}
+
+    if emergency_contact:
+        query["emergency_contact"] = {"$regex": emergency_contact}
+
+    if full_name:
+        query["full_name"] = {"$regex": full_name, "$options": "i"}
+
+    patients = users_collection.find(query)
+    result = []
+    for patient in patients:
+        patient["id"] = str(patient["_id"])
+        if "updated_at" in patient and isinstance(patient["updated_at"], datetime):
+            patient["updated_at"] = patient["updated_at"].date()
+        result.append(PatientOut(**patient))
+
+    return result
 
 @router.get("/{patient_id}", response_model=PatientOut)
 async def get_patient(patient_id: str):

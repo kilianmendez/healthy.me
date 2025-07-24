@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-from routers import users, patients, specialists, auth, conditions, treatments, appointments, consultations
+from routers import users, patients, specialists, auth, conditions, treatments, appointments, consultations, prescriptions
 
 app = FastAPI(title="Medical Tracker API")
 
@@ -17,6 +17,7 @@ app.include_router(conditions.router, prefix="/conditions", tags=["conditions"])
 app.include_router(treatments.router, prefix="/treatments", tags=["treatments"])
 app.include_router(appointments.router, prefix="/appointments", tags=["appointments"])
 app.include_router(consultations.router, prefix="/consultations", tags=["consultations"])
+app.include_router(prescriptions.router, prefix="/prescriptions", tags=["prescriptions"])
 
 # Health check
 @app.get("/")

@@ -4,6 +4,9 @@ from db.client import appointments_collection
 from bson import ObjectId
 from typing import List
 from datetime import datetime, date
+from fastapi import Query
+from typing import Optional
+from schemas.appointment import AppointmentStatus
 
 router = APIRouter()
 
@@ -33,6 +36,52 @@ async def create_appointment(appointment: Appointment):
     created_appointment = appointments_collection.find_one({"_id": result.inserted_id})
     return AppointmentOut(id=str(created_appointment["_id"]), **created_appointment)
 
+@router.get("/search", response_model=List[AppointmentOut])
+async def search_appointments(
+    reason: Optional[str] = Query(None, description="Partial reason to search"),
+    notes: Optional[str] = Query(None, description="Partial notes to search"),
+    specialist_id: Optional[str] = Query(None, description="Filter by specialist id"),
+    patient_id: Optional[str] = Query(None, description="Filter by patient id"),
+    status: Optional[AppointmentStatus] = Query(None, description="Filter by appointment status"),
+    date_from: Optional[datetime] = Query(None, description="Filter from date"),
+    date_to: Optional[datetime] = Query(None, description="Filter to date"),
+    skip: int = 0,
+    limit: int = 10
+):
+    query = {}
+
+    def make_fuzzy_regex(value: str) -> str:
+        # Genera patrón para búsqueda flexible: "ama" => ".*a.*m.*a.*"
+        return ".*" + ".*".join(value) + ".*"
+
+    if reason:
+        regex = make_fuzzy_regex(reason)
+        query["reason"] = {"$regex": regex, "$options": "i"}
+
+    if notes:
+        regex = make_fuzzy_regex(notes)
+        query["notes"] = {"$regex": regex, "$options": "i"}
+
+    if specialist_id:
+        query["specialist_id"] = specialist_id
+
+    if patient_id:
+        query["patient_id"] = patient_id
+
+    if status:
+        query["status"] = status.value
+
+    if date_from or date_to:
+        query["date"] = {}
+        if date_from:
+            query["date"]["$gte"] = date_from
+        if date_to:
+            query["date"]["$lte"] = date_to
+        if not query["date"]:
+            query.pop("date")
+
+    appointments = appointments_collection.find(query).skip(skip).limit(limit)
+    return [AppointmentOut(id=str(a["_id"]), **a) for a in appointments]
 
 @router.get("/", response_model=List[AppointmentOut])
 async def list_appointments(skip: int = 0, limit: int = 10):
@@ -77,5 +126,19 @@ async def delete_appointment(appointment_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
     return {"message": "Appointment deleted successfully"}
+
+
+@router.get("/by-patient/{patient_id}", response_model=List[AppointmentOut])
+async def get_appointments_by_patient(patient_id: str, skip: int = 0, limit: int = 10):
+    """Get all appointments for a specific patient."""
+    appointments = appointments_collection.find({"patient_id": patient_id}).skip(skip).limit(limit)
+    return [AppointmentOut(id=str(a["_id"]), **a) for a in appointments]
+
+@router.get("/by-specialist/{specialist_id}", response_model=List[AppointmentOut])
+async def get_appointments_by_specialist(specialist_id: str, skip: int = 0, limit: int = 10):
+    """Get all appointments for a specific specialist."""
+    appointments = appointments_collection.find({"specialist_id": specialist_id}).skip(skip).limit(limit)
+    return [AppointmentOut(id=str(a["_id"]), **a) for a in appointments]
+
 # -------------------------------
 

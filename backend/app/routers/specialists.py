@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut, SpecialistUpdate
+from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut, SpecialistUpdate, Gender
 from db.models.user import individual_serial, list_serial
 from utils.security import validate_password_strength
 from db.client import users_collection
@@ -9,6 +9,10 @@ from datetime import datetime, date
 import os
 from .auth import get_current_user
 from passlib.context import CryptContext
+from fastapi import Query
+from typing import Optional
+from fastapi.encoders import jsonable_encoder
+import re
 
 router = APIRouter()
 
@@ -52,6 +56,58 @@ async def create_specialist(specialist: SpecialistCreate):
     users_collection.insert_one(specialist_dict)
     specialist_dict["id"] = str(specialist_dict["_id"])
     return Specialist(**specialist_dict)
+
+
+@router.get("/search/", response_model=List[SpecialistOut])
+async def search_specialists(
+    full_name: Optional[str] = Query(None, description="Search by full name"),
+    biography: Optional[str] = Query(None, description="Search in biography"),
+    specialties: Optional[List[str]] = Query(None, description="One or more specialties"),
+    workplaces: Optional[str] = Query(None, description="Search by workplace"),
+    gender: Optional[Gender] = Query(None, description="Filter by gender"),
+    min_birth_date: Optional[date] = Query(None),
+    max_birth_date: Optional[date] = Query(None),
+    skip: int = 0,
+    limit: int = 10
+):
+    query = {"role": "specialist"}
+
+    if full_name:
+        query["full_name"] = {"$regex": full_name, "$options": "i"}
+    if biography:
+        query["biography"] = {"$regex": biography, "$options": "i"}
+    if specialties:
+        query["specialties"] = {
+            "$elemMatch": {
+                "$in": [re.compile(spec, re.IGNORECASE) for spec in specialties]
+            }
+        }
+    if workplaces:
+        query["workplaces"] = {"$elemMatch": {"$regex": workplaces, "$options": "i"}}
+    if gender:
+        query["gender"] = gender
+    if min_birth_date or max_birth_date:
+        birth_filter = {}
+        if min_birth_date:
+            birth_filter["$gte"] = datetime.combine(min_birth_date, datetime.min.time())
+        if max_birth_date:
+            birth_filter["$lte"] = datetime.combine(max_birth_date, datetime.max.time())
+        query["date_of_birth"] = birth_filter
+
+    specialists_cursor = users_collection.find(query).skip(skip).limit(limit)
+    result = []
+
+    for specialist in specialists_cursor:
+        specialist["id"] = str(specialist.pop("_id"))
+        if "created_at" in specialist and isinstance(specialist["created_at"], datetime):
+            specialist["created_at"] = specialist["created_at"].date()
+        if "updated_at" in specialist and isinstance(specialist["updated_at"], datetime):
+            specialist["updated_at"] = specialist["updated_at"].date()
+
+        result.append(SpecialistOut(**specialist))
+
+    return result
+
 
 @router.get("/{specialist_id}", response_model=SpecialistOut)
 async def get_specialist(specialist_id: str):
