@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from enum import Enum
 import datetime
-from .prescription import Prescription
 from .treatment import Treatment
 
 # ----------Enums------------

@@ -7,11 +7,13 @@ def individual_serial(prescription) -> dict:
         "dosage": prescription.get("dosage"),
         "route": prescription.get("route"),
         "frequency": prescription.get("frequency"),
-        "start_date": prescription.get("start_date").isoformat() if prescription.get("start_date") else None,
-        "end_date": prescription.get("end_date").isoformat() if prescription.get("end_date") else None,
+        "start_date": prescription.get("start_date"),
+        "end_date": prescription.get("end_date"),
         "notes": prescription.get("notes"),
         "prescribed_by": prescription.get("prescribed_by"),
-        "prescribed_to": prescription.get("prescribed_to")
+        "prescribed_to": prescription.get("prescribed_to"),
+        "created_at": prescription.get("created_at"),
+        "updated_at": prescription.get("updated_at")
     }
 
 def list_serial(prescriptions) -> list:
