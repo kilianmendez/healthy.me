@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from enum import Enum
 from datetime import date
@@ -22,6 +22,7 @@ class Gender(str, Enum):
 # ----------Patient----------
 class Patient(User):
     role: UserRole = UserRole.patient
+    patient_code: Optional[str] = Field(None, unique=True, description="Unique code for patient to share with specialists.")
     phone_number: Optional[str] = None  # Número de teléfono
     emergency_contact: Optional[str] = None  # Contacto de emergencia
     conditions: Optional[List[Condition]] = []
@@ -35,8 +36,17 @@ class Patient(User):
 class PatientCreate(Patient):
     password: str  # Contraseña del paciente, necesaria para el registro
 
-class PatientOut(Patient):
-    id: str  # ID del paciente, necesario para la salida del modelo
+# Public model for general lists
+class PatientPublic(BaseModel):
+    id: str
+    username: str
+    full_name: Optional[str] = None
+
+
+
+# Complete model for authorized users (owner, assigned specialist, admin)
+class PatientPrivate(Patient):
+    id: str
 
 class PatientUpdate(BaseModel):
     username: Optional[str] = None

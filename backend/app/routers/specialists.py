@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from pydantic import BaseModel
 from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut, SpecialistUpdate, Gender
 from db.models.user import individual_serial, list_serial
 from utils.security import validate_password_strength
@@ -17,6 +18,9 @@ import re
 router = APIRouter()
 
 crypt = CryptContext(schemes=["bcrypt"])
+
+class AddPatientByCodePayload(BaseModel):
+    patient_code: str
 
 # ----------Functions-----------
 def convert_dates_to_datetime(data):
@@ -169,15 +173,14 @@ async def update_specialist(
         result["updated_at"] = result["updated_at"].date()
     return SpecialistOut(**result)
 
-@router.post("/me/patients/{patient_id}", response_model=SpecialistOut, status_code=status.HTTP_200_OK)
-async def add_patient_to_specialist(
-    patient_id: str,
+@router.post("/me/patients", response_model=SpecialistOut, status_code=status.HTTP_200_OK)
+async def add_patient_by_code(
+    payload: AddPatientByCodePayload,
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Adds a patient to the current specialist's patient list.
+    Adds a patient to the current specialist's list using the patient's unique code.
     """
-    # 1. Authorization: Ensure the current user is a specialist
     if current_user.get("role") != "specialist":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -185,25 +188,19 @@ async def add_patient_to_specialist(
         )
 
     specialist_id = current_user["id"]
+    patient_code = payload.patient_code.upper()
 
-    # 2. Validation: Check if the patient exists and has the 'patient' role
-    try:
-        patient_obj_id = ObjectId(patient_id)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid patient ID format: {patient_id}"
-        )
-
-    patient = users_collection.find_one({"_id": patient_obj_id, "role": "patient"})
+    # Find the patient by their unique code
+    patient = users_collection.find_one({"patient_code": patient_code, "role": "patient"})
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Patient with ID {patient_id} not found."
+            detail=f"Patient with code '{patient_code}' not found."
         )
+    
+    patient_id = str(patient["_id"])
 
-    # 3. Update: Add the patient's ID to the specialist's 'patients' array
-    # Using $addToSet to avoid duplicate entries automatically
+    # Add the patient's ID to the specialist's 'patients' array
     result = users_collection.find_one_and_update(
         {"_id": ObjectId(specialist_id)},
         {"$addToSet": {"patients": patient_id}},
@@ -211,13 +208,11 @@ async def add_patient_to_specialist(
     )
 
     if not result:
-        # This case should ideally not be reached if the specialist exists
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
             detail="Specialist not found."
         )
     
-    # 4. Response: Return the updated specialist document
     result["id"] = str(result["_id"])
     if "updated_at" in result and isinstance(result.get("updated_at"), datetime):
         result["updated_at"] = result["updated_at"].date()
@@ -234,7 +229,6 @@ async def remove_patient_from_specialist(
     """
     Removes a patient from the current specialist's patient list.
     """
-    # 1. Authorization: Ensure the current user is a specialist
     if current_user.get("role") != "specialist":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -243,14 +237,12 @@ async def remove_patient_from_specialist(
 
     specialist_id = current_user["id"]
 
-    # 2. Validation: Check if the patient is in the specialist's list
     if patient_id not in current_user.get("patients", []):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Patient with ID {patient_id} is not in your patient list."
         )
 
-    # 3. Update: Remove the patient's ID from the specialist's 'patients' array
     result = users_collection.find_one_and_update(
         {"_id": ObjectId(specialist_id)},
         {"$pull": {"patients": patient_id}},
@@ -263,7 +255,6 @@ async def remove_patient_from_specialist(
             detail="Specialist not found."
         )
     
-    # 4. Response: Return the updated specialist document
     result["id"] = str(result["_id"])
     if "updated_at" in result and isinstance(result.get("updated_at"), datetime):
         result["updated_at"] = result["updated_at"].date()
