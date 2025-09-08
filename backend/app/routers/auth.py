@@ -15,7 +15,7 @@ router = APIRouter()
 
 SECRET_KEY = "g745j7tcgcg4htc834qc8ct934ht3"  # Change in production
 ALGORITHM = "HS256"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/app/routers/users.py/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 crypt = CryptContext(schemes=["bcrypt"])
 
@@ -66,6 +66,12 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     if "password" in user:
         del user["password"]
 
+    # Convert datetime to date for Pydantic model compatibility
+    if "updated_at" in user and isinstance(user["updated_at"], datetime):
+        user["updated_at"] = user["updated_at"].date()
+    if "created_at" in user and isinstance(user["created_at"], datetime):
+        user["created_at"] = user["created_at"].date()
+        
     return user
 # -------------------------------
 
