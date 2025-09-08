@@ -169,6 +169,109 @@ async def update_specialist(
         result["updated_at"] = result["updated_at"].date()
     return SpecialistOut(**result)
 
+@router.post("/me/patients/{patient_id}", response_model=SpecialistOut, status_code=status.HTTP_200_OK)
+async def add_patient_to_specialist(
+    patient_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Adds a patient to the current specialist's patient list.
+    """
+    # 1. Authorization: Ensure the current user is a specialist
+    if current_user.get("role") != "specialist":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only specialists can add patients to their list."
+        )
+
+    specialist_id = current_user["id"]
+
+    # 2. Validation: Check if the patient exists and has the 'patient' role
+    try:
+        patient_obj_id = ObjectId(patient_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid patient ID format: {patient_id}"
+        )
+
+    patient = users_collection.find_one({"_id": patient_obj_id, "role": "patient"})
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient with ID {patient_id} not found."
+        )
+
+    # 3. Update: Add the patient's ID to the specialist's 'patients' array
+    # Using $addToSet to avoid duplicate entries automatically
+    result = users_collection.find_one_and_update(
+        {"_id": ObjectId(specialist_id)},
+        {"$addToSet": {"patients": patient_id}},
+        return_document=True
+    )
+
+    if not result:
+        # This case should ideally not be reached if the specialist exists
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Specialist not found."
+        )
+    
+    # 4. Response: Return the updated specialist document
+    result["id"] = str(result["_id"])
+    if "updated_at" in result and isinstance(result.get("updated_at"), datetime):
+        result["updated_at"] = result["updated_at"].date()
+    if "created_at" in result and isinstance(result.get("created_at"), datetime):
+        result["created_at"] = result["created_at"].date()
+
+    return SpecialistOut(**result)
+
+@router.delete("/me/patients/{patient_id}", response_model=SpecialistOut, status_code=status.HTTP_200_OK)
+async def remove_patient_from_specialist(
+    patient_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Removes a patient from the current specialist's patient list.
+    """
+    # 1. Authorization: Ensure the current user is a specialist
+    if current_user.get("role") != "specialist":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only specialists can modify their patient list."
+        )
+
+    specialist_id = current_user["id"]
+
+    # 2. Validation: Check if the patient is in the specialist's list
+    if patient_id not in current_user.get("patients", []):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient with ID {patient_id} is not in your patient list."
+        )
+
+    # 3. Update: Remove the patient's ID from the specialist's 'patients' array
+    result = users_collection.find_one_and_update(
+        {"_id": ObjectId(specialist_id)},
+        {"$pull": {"patients": patient_id}},
+        return_document=True
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Specialist not found."
+        )
+    
+    # 4. Response: Return the updated specialist document
+    result["id"] = str(result["_id"])
+    if "updated_at" in result and isinstance(result.get("updated_at"), datetime):
+        result["updated_at"] = result["updated_at"].date()
+    if "created_at" in result and isinstance(result.get("created_at"), datetime):
+        result["created_at"] = result["created_at"].date()
+
+    return SpecialistOut(**result)
+
 @router.delete("/{specialist_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_specialist(
     specialist_id: str,
