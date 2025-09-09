@@ -58,9 +58,22 @@ async def search_consultations(
     date_from: Optional[date] = Query(None, description="Filter from date"),
     date_to: Optional[date] = Query(None, description="Filter to date"),
     skip: int = 0,
-    limit: int = 10
+    limit: int = 10,
+    current_user: dict = Depends(get_current_user)
 ):
     query = {}
+    role = current_user.get("role")
+    user_id = current_user.get("id")
+
+    if role == "admin":
+        pass  # Admins can search all consultations
+    elif role == "specialist":
+        query["specialist_id"] = user_id
+    elif role == "patient":
+        query["patient_id"] = user_id
+    else:
+        raise HTTPException(status_code=403, detail="You do not have permission to search consultations.")
+
 
     def make_fuzzy_regex(value: str) -> str:
         # Crea regex como .*a.*s.*m.*a.* para aproximar similitud
@@ -78,10 +91,10 @@ async def search_consultations(
         regex = make_fuzzy_regex(notes)
         query["notes"] = {"$regex": regex, "$options": "i"}
 
-    if specialist_id:
+    if specialist_id and role == "admin":
         query["specialist_id"] = specialist_id
 
-    if patient_id:
+    if patient_id and role == "admin":
         query["patient_id"] = patient_id
 
     if date_from or date_to:
@@ -99,19 +112,56 @@ async def search_consultations(
 
 
 @router.get("/", response_model=List[ConsultationOut])
-async def list_consultations(skip: int = 0, limit: int = 10):
-    consultations = consultations_collection.find().skip(skip).limit(limit)
+async def list_consultations(skip: int = 0, limit: int = 10, current_user: dict = Depends(get_current_user)):
+    query = {}
+    role = current_user.get("role")
+    user_id = current_user.get("id")
+
+    if role == "admin":
+        pass  # Admins can see all consultations
+    elif role == "specialist":
+        query["specialist_id"] = user_id
+    elif role == "patient":
+        query["patient_id"] = user_id
+    else:
+        # Block other roles or users with no role
+        raise HTTPException(status_code=403, detail="You do not have permission to view consultations.")
+
+    consultations = consultations_collection.find(query).skip(skip).limit(limit)
     return [ConsultationOut(id=str(c["_id"]), **c) for c in consultations]
 
 @router.get("/{consultation_id}", response_model=ConsultationOut)
-async def get_consultation(consultation_id: str):
+async def get_consultation(consultation_id: str, current_user: dict = Depends(get_current_user)):
     consultation = consultations_collection.find_one({"_id": ObjectId(consultation_id)})
     if not consultation:
         raise HTTPException(status_code=404, detail="Consultation not found")
+
+    role = current_user.get("role")
+    user_id = current_user.get("id")
+
+    # Check permissions
+    if role == "admin":
+        pass  # Admin can see any consultation
+    elif role == "specialist" and consultation.get("specialist_id") == user_id:
+        pass  # Specialist can see their own consultation
+    elif role == "patient" and consultation.get("patient_id") == user_id:
+        pass  # Patient can see their own consultation
+    else:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this consultation.")
+
     return ConsultationOut(id=str(consultation["_id"]), **consultation)
 
 @router.put("/{consultation_id}", response_model=ConsultationOut)
-async def update_consultation(consultation_id: str, consultation_update: ConsultationUpdate, current_user: dict = Depends(only_specialists)):
+async def update_consultation(consultation_id: str, consultation_update: ConsultationUpdate, current_user: dict = Depends(get_current_user)):
+    
+    consultation = consultations_collection.find_one({"_id": ObjectId(consultation_id)})
+    if not consultation:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+
+    # Check if the user is the specialist who created the consultation
+    if current_user.get("role") != "specialist" or consultation.get("specialist_id") != current_user.get("id"):
+        raise HTTPException(status_code=403, detail="You do not have permission to update this consultation.")
+
     update_data = consultation_update.dict(exclude_unset=True)
     update_data["updated_at"] = datetime.utcnow()
     update_data = convert_dates_to_datetime(update_data)
@@ -123,29 +173,34 @@ async def update_consultation(consultation_id: str, consultation_update: Consult
     )
 
     if not updated:
-        raise HTTPException(status_code=404, detail="Consultation not found")
+        # This case should ideally not be reached if the first find_one succeeds
+        raise HTTPException(status_code=404, detail="Failed to update consultation")
     
     return ConsultationOut(id=str(updated["_id"]), **updated)
 
 @router.delete("/{consultation_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_consultation(consultation_id: str):
-    """WILL BE DELETED IN THE FUTURE."""
+async def delete_consultation(consultation_id: str, current_user: dict = Depends(get_current_user)):
+    """Deletes a consultation. Only accessible by the creator specialist or an admin."""
+    consultation = consultations_collection.find_one({"_id": ObjectId(consultation_id)})
+    if not consultation:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+
+    role = current_user.get("role")
+    user_id = current_user.get("id")
+
+    # Check permissions
+    if role == "admin":
+        pass  # Admin can delete any consultation
+    elif role == "specialist" and consultation.get("specialist_id") == user_id:
+        pass  # Specialist can delete their own consultation
+    else:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this consultation.")
+
     result = consultations_collection.delete_one({"_id": ObjectId(consultation_id)})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Consultation not found")
+        # This case should not be reached if the initial find_one was successful
+        raise HTTPException(status_code=404, detail="Consultation not found during deletion")
+    
     return {"message": "Consultation deleted successfully"}
-
-
-@router.get("/by-specialist/{specialist_id}", response_model=List[ConsultationOut])
-async def get_consultations_by_specialist(specialist_id: str, skip: int = 0, limit: int = 10):
-    """Get all consultations made by a specific specialist."""
-    consultations = consultations_collection.find({"specialist_id": specialist_id}).skip(skip).limit(limit)
-    return [ConsultationOut(id=str(c["_id"]), **c) for c in consultations]
-
-@router.get("/by-patient/{patient_id}", response_model=List[ConsultationOut])
-async def get_consultations_by_patient(patient_id: str, skip: int = 0, limit: int = 10):
-    """Get all consultations for a specific patient."""
-    consultations = consultations_collection.find({"patient_id": patient_id}).skip(skip).limit(limit)
-    return [ConsultationOut(id=str(c["_id"]), **c) for c in consultations]
 
 
