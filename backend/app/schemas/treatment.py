@@ -21,7 +21,6 @@ class Treatment(BaseModel):
     prescribed_by: Optional[str] = None  # ID of the specialist who prescribed
     prescribed_to: Optional[str] = None  # ID of the patient
     prescriptions: Optional[List[Prescription]] = None
-    prescription_ids: Optional[List[str]] = None  # List of prescription IDs
     status: TreatmentStatus = TreatmentStatus.ongoing
     start_date: Optional[date] = None
     end_date: Optional[date] = None
