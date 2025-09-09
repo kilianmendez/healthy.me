@@ -37,6 +37,7 @@ def only_specialists(current_user: dict = Depends(get_current_user)):
 @router.post("/", response_model=ConsultationOut, status_code=status.HTTP_201_CREATED)
 async def create_consultation(consultation: Consultation, current_user: dict = Depends(only_specialists)):
     consultation_data = consultation.dict()
+    consultation_data["specialist_id"] = current_user["id"]
     consultation_data = convert_dates_to_datetime(consultation_data)
 
     result = consultations_collection.insert_one(consultation_data)

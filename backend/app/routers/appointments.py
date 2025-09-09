@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from schemas.appointment import Appointment, AppointmentOut, AppointmentUpdate
 from db.client import appointments_collection
 from bson import ObjectId
@@ -7,6 +7,7 @@ from datetime import datetime, date
 from fastapi import Query
 from typing import Optional
 from schemas.appointment import AppointmentStatus
+from routers.auth import get_current_user
 
 router = APIRouter()
 
@@ -20,13 +21,22 @@ def convert_dates_to_datetime(data):
         return datetime.combine(data, datetime.min.time())
     else:
         return data
+
+def only_specialists(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "specialist":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to perform this action"
+        )
+    return current_user
 # -------------------------------
 
 # ----------Endpoints-----------
 @router.post("/", response_model=AppointmentOut, status_code=status.HTTP_201_CREATED)
-async def create_appointment(appointment: Appointment):
+async def create_appointment(appointment: Appointment, current_user: dict = Depends(only_specialists)):
     """Create a new appointment."""
     appointment_data = appointment.dict()
+    appointment_data["specialist_id"] = current_user["id"]
     appointment_data = convert_dates_to_datetime(appointment_data)
 
     result = appointments_collection.insert_one(appointment_data)
@@ -46,9 +56,21 @@ async def search_appointments(
     date_from: Optional[datetime] = Query(None, description="Filter from date"),
     date_to: Optional[datetime] = Query(None, description="Filter to date"),
     skip: int = 0,
-    limit: int = 10
+    limit: int = 10,
+    current_user: dict = Depends(get_current_user)
 ):
     query = {}
+    role = current_user.get("role")
+    user_id = current_user.get("id")
+
+    if role == "admin":
+        pass  # Admins can search all appointments
+    elif role == "specialist":
+        query["specialist_id"] = user_id
+    elif role == "patient":
+        query["patient_id"] = user_id
+    else:
+        raise HTTPException(status_code=403, detail="You do not have permission to search appointments.")
 
     def make_fuzzy_regex(value: str) -> str:
         # Genera patrón para búsqueda flexible: "ama" => ".*a.*m.*a.*"
@@ -62,10 +84,10 @@ async def search_appointments(
         regex = make_fuzzy_regex(notes)
         query["notes"] = {"$regex": regex, "$options": "i"}
 
-    if specialist_id:
+    if specialist_id and role == "admin":
         query["specialist_id"] = specialist_id
 
-    if patient_id:
+    if patient_id and role == "admin":
         query["patient_id"] = patient_id
 
     if status:
@@ -84,24 +106,60 @@ async def search_appointments(
     return [AppointmentOut(id=str(a["_id"]), **a) for a in appointments]
 
 @router.get("/", response_model=List[AppointmentOut])
-async def list_appointments(skip: int = 0, limit: int = 10):
+async def list_appointments(skip: int = 0, limit: int = 10, current_user: dict = Depends(get_current_user)):
     """List all appointments with pagination."""
-    appointments = appointments_collection.find().skip(skip).limit(limit)
+    query = {}
+    role = current_user.get("role")
+    user_id = current_user.get("id")
+
+    if role == "admin":
+        pass  # Admins can see all appointments
+    elif role == "specialist":
+        query["specialist_id"] = user_id
+    elif role == "patient":
+        query["patient_id"] = user_id
+    else:
+        # Block other roles or users with no role
+        raise HTTPException(status_code=403, detail="You do not have permission to view appointments.")
+
+    appointments = appointments_collection.find(query).skip(skip).limit(limit)
     return [AppointmentOut(id=str(a["_id"]), **a) for a in appointments]
 
 
 @router.get("/{appointment_id}", response_model=AppointmentOut)
-async def get_appointment(appointment_id: str):
+async def get_appointment(appointment_id: str, current_user: dict = Depends(get_current_user)):
     """Get a specific appointment by ID."""
     appointment = appointments_collection.find_one({"_id": ObjectId(appointment_id)})
     if not appointment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
+
+    role = current_user.get("role")
+    user_id = current_user.get("id")
+
+    # Check permissions
+    if role == "admin":
+        pass  # Admin can see any appointment
+    elif role == "specialist" and appointment.get("specialist_id") == user_id:
+        pass  # Specialist can see their own appointment
+    elif role == "patient" and appointment.get("patient_id") == user_id:
+        pass  # Patient can see their own appointment
+    else:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this appointment.")
+
     return AppointmentOut(id=str(appointment["_id"]), **appointment)
 
 
 @router.put("/{appointment_id}", response_model=AppointmentOut)
-async def update_appointment(appointment_id: str, appointment_update: AppointmentUpdate):
+async def update_appointment(appointment_id: str, appointment_update: AppointmentUpdate, current_user: dict = Depends(get_current_user)):
     """Update an existing appointment."""
+    appointment = appointments_collection.find_one({"_id": ObjectId(appointment_id)})
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    # Check if the user is the specialist who created the appointment
+    if current_user.get("role") != "specialist" or appointment.get("specialist_id") != current_user.get("id"):
+        raise HTTPException(status_code=403, detail="You do not have permission to update this appointment.")
+
     update_data = appointment_update.dict(exclude_unset=True)
     update_data["updated_at"] = datetime.utcnow()
     update_data = convert_dates_to_datetime(update_data)
@@ -120,25 +178,24 @@ async def update_appointment(appointment_id: str, appointment_update: Appointmen
 
 
 @router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_appointment(appointment_id: str):
+async def delete_appointment(appointment_id: str, current_user: dict = Depends(get_current_user)):
     """Delete an appointment by ID."""
+    appointment = appointments_collection.find_one({"_id": ObjectId(appointment_id)})
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    role = current_user.get("role")
+    user_id = current_user.get("id")
+
+    # Check permissions
+    if role == "admin":
+        pass  # Admin can delete any appointment
+    elif role == "specialist" and appointment.get("specialist_id") == user_id:
+        pass  # Specialist can delete their own appointment
+    else:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this appointment.")
+
     result = appointments_collection.delete_one({"_id": ObjectId(appointment_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
     return {"message": "Appointment deleted successfully"}
-
-
-@router.get("/by-patient/{patient_id}", response_model=List[AppointmentOut])
-async def get_appointments_by_patient(patient_id: str, skip: int = 0, limit: int = 10):
-    """Get all appointments for a specific patient."""
-    appointments = appointments_collection.find({"patient_id": patient_id}).skip(skip).limit(limit)
-    return [AppointmentOut(id=str(a["_id"]), **a) for a in appointments]
-
-@router.get("/by-specialist/{specialist_id}", response_model=List[AppointmentOut])
-async def get_appointments_by_specialist(specialist_id: str, skip: int = 0, limit: int = 10):
-    """Get all appointments for a specific specialist."""
-    appointments = appointments_collection.find({"specialist_id": specialist_id}).skip(skip).limit(limit)
-    return [AppointmentOut(id=str(a["_id"]), **a) for a in appointments]
-
-# -------------------------------
-
