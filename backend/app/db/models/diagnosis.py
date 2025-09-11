@@ -3,7 +3,7 @@
 def individual_serial(diagnosis) -> dict:
     return {
         "id": str(diagnosis["_id"]),
-        "condition_id": diagnosis.get("condition_id"),
+        "condition_name": diagnosis.get("condition_name"),
         "patient_id": diagnosis.get("patient_id"),
         "specialist_id": diagnosis.get("specialist_id"),
         "diagnosed_at": diagnosis.get("diagnosed_at").isoformat() if diagnosis.get("diagnosed_at") else None,

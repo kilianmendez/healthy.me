@@ -4,7 +4,6 @@ from enum import Enum
 from datetime import date
 from typing import List
 
-from .condition import Condition
 from .treatment import Treatment
 from .medication import Medication
 from .consultation import Consultation

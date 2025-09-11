@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import users, auth, patients, specialists, conditions, treatments, appointments, consultations, prescriptions, diagnoses
+from routers import users, auth, patients, specialists, treatments, appointments, consultations, prescriptions, diagnoses
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -18,7 +18,6 @@ app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(patients.router, prefix="/patients", tags=["Patients"])
 app.include_router(specialists.router, prefix="/specialists", tags=["Specialists"])
-app.include_router(conditions.router, prefix="/conditions", tags=["Conditions"])
 app.include_router(diagnoses.router, prefix="/diagnoses", tags=["Diagnoses"])
 app.include_router(treatments.router, prefix="/treatments", tags=["Treatments"])
 app.include_router(appointments.router, prefix="/appointments", tags=["Appointments"])

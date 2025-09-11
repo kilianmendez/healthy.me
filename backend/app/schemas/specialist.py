@@ -1,11 +1,9 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from enum import Enum
 from datetime import date
-from typing import List
 from .user import User
 
-from .condition import Condition
 from .treatment import Treatment
 from .medication import Medication
 from .consultation import Consultation
@@ -39,13 +37,6 @@ class SpecialistCreate(Specialist):
 
 class SpecialistOut(Specialist):
     id: str  # ID del especialista, necesario para la salida del modelo
-
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
-from datetime import date
-from .medication import Medication
-from .consultation import Consultation
-from .specialist import Gender
 
 class SpecialistUpdate(BaseModel):
     username: Optional[str] = None

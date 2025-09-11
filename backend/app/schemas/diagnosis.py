@@ -10,7 +10,7 @@ class DiagnosisStatus(str, Enum):
     inactive = "inactive"
 
 class Diagnosis(BaseModel):
-    condition_id: str
+    condition_name: str
     patient_id: str
     specialist_id: Optional[str] = None
     diagnosed_at: date

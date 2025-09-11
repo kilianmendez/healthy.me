@@ -13,7 +13,6 @@ def individual_serial(user) -> dict:
         "avatar_url": user.get("avatar_url"),
         "phone_number": user.get("phone_number"),
         "emergency_contact": user.get("emergency_contact"),
-        "conditions": user.get("conditions", []),
         "treatments": user.get("treatments", []),
         "medications": user.get("medications", []),
         "allergies": user.get("allergies", []),
