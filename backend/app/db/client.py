@@ -6,6 +6,7 @@ client = MongoClient("mongodb+srv://kylianmendez:X2gKaohY6PCgUIRK@cluster0.fpavt
 db_client = client.medical_tracker
 users_collection = db_client["users"]
 conditions_collection = db_client["conditions"]
+diagnoses_collection = db_client["diagnoses"]
 treatments_collection = db_client["treatments"]
 appointments_collection = db_client["appointments"]
 consultations_collection = db_client["consultations"]

@@ -1,26 +1,31 @@
 from fastapi import FastAPI
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
-from routers import users, patients, specialists, auth, conditions, treatments, appointments, consultations, prescriptions
+from routers import users, auth, patients, specialists, conditions, treatments, appointments, consultations, prescriptions, diagnoses
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Medical Tracker API")
+app = FastAPI()
 
-# Virtual environment: .venv\Scripts\activate
-# Uvicorn server: uvicorn main:app --reload
+# Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Include routers
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(users.router, prefix="/users", tags=["users"])
-app.include_router(patients.router, prefix="/patients", tags=["patients"])
-app.include_router(specialists.router, prefix="/specialists", tags=["specialists"])
-app.include_router(conditions.router, prefix="/conditions", tags=["conditions"])
-app.include_router(treatments.router, prefix="/treatments", tags=["treatments"])
-app.include_router(appointments.router, prefix="/appointments", tags=["appointments"])
-app.include_router(consultations.router, prefix="/consultations", tags=["consultations"])
-app.include_router(prescriptions.router, prefix="/prescriptions", tags=["prescriptions"])
+# Routers
+app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(auth.router, prefix="/auth", tags=["Auth"])
+app.include_router(patients.router, prefix="/patients", tags=["Patients"])
+app.include_router(specialists.router, prefix="/specialists", tags=["Specialists"])
+app.include_router(conditions.router, prefix="/conditions", tags=["Conditions"])
+app.include_router(diagnoses.router, prefix="/diagnoses", tags=["Diagnoses"])
+app.include_router(treatments.router, prefix="/treatments", tags=["Treatments"])
+app.include_router(appointments.router, prefix="/appointments", tags=["Appointments"])
+app.include_router(consultations.router, prefix="/consultations", tags=["Consultations"])
+app.include_router(prescriptions.router, prefix="/prescriptions", tags=["Prescriptions"])
 
-# Health check
 @app.get("/")
-async def health():
-    return {"message": "Medical Tracker API is running"}
+def read_root():
+    return {"message": "Welcome to the Medical Tracker API"}
 

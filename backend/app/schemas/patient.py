@@ -4,7 +4,6 @@ from enum import Enum
 from datetime import date
 from typing import List
 from .user import User
-from .condition import Condition
 from .treatment import Treatment
 from .medication import Medication
 from .consultation import Consultation
@@ -25,7 +24,6 @@ class Patient(User):
     patient_code: Optional[str] = Field(None, unique=True, description="Unique code for patient to share with specialists.")
     phone_number: Optional[str] = None  # Número de teléfono
     emergency_contact: Optional[str] = None  # Contacto de emergencia
-    conditions: Optional[List[Condition]] = []
     treatments: Optional[List[Treatment]] = []
     medications: Optional[List[str]] = []
     allergies: Optional[List[str]] = []  # Alergias conocidas
@@ -59,7 +57,6 @@ class PatientUpdate(BaseModel):
     avatar_url: Optional[str] = None
     phone_number: Optional[str] = None
     emergency_contact: Optional[str] = None
-    conditions: Optional[List[Condition]] = None
     treatments: Optional[List[Treatment]] = None
     medications: Optional[List[str]] = None
     allergies: Optional[List[str]] = None

@@ -3,12 +3,6 @@ def individual_serial(condition) -> dict:
         "id": str(condition["_id"]),
         "name": condition.get("name"),
         "description": condition.get("description"),
-        "symptoms": condition.get("symptoms", []),
-        "observations": condition.get("observations"),
-        "diagnosed_by": condition.get("diagnosed_by"),
-        "diagnosed_for": condition.get("diagnosed_to"),
-        "diagnosed_at": condition.get("diagnosed_at").isoformat() if condition.get("diagnosed_at") else None,
-        "status": condition.get("status", "active")
     }
 
 def list_serial(conditions) -> list:
