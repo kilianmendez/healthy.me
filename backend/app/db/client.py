@@ -1,8 +1,11 @@
 from pymongo import MongoClient
 from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # MongoDB connection
-client = MongoClient("mongodb+srv://kylianmendez:X2gKaohY6PCgUIRK@cluster0.fpavtmz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient(os.getenv("MONGODB_URI"))
 db_client = client.medical_tracker
 users_collection = db_client["users"]
 diagnoses_collection = db_client["diagnoses"]

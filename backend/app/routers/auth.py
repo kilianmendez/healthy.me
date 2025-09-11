@@ -13,7 +13,7 @@ from utils.security import validate_password_strength
 
 router = APIRouter()
 
-SECRET_KEY = "g745j7tcgcg4htc834qc8ct934ht3"  # Change in production
+SECRET_KEY = os.getenv("SECRET_KEY_AUTH")  # Change in production
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 

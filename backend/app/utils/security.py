@@ -3,8 +3,9 @@ import jwt
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 import re
+import os
 
-SECRET_KEY = "Mdpc4LpEdJbGEib4swcmeK4y2wvqhrji" 
+SECRET_KEY = os.getenv("SECRET_KEY_SECURITY") 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
