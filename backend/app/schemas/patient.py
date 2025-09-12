@@ -5,7 +5,6 @@ from datetime import date
 from typing import List
 from .user import User
 from .treatment import Treatment
-from .medication import Medication
 from .consultation import Consultation
 
 # ----------Enums------------
@@ -27,9 +26,7 @@ class Patient(User):
     treatments: Optional[List[Treatment]] = []
     medications: Optional[List[str]] = []
     allergies: Optional[List[str]] = []  # Alergias conocidas
-    appointments: Optional[List[str]] = []  # IDs de citas/appointments
     consultation_history: Optional[List[Consultation]] = []
-    prescriptions: Optional[List[str]] = []  # Recetas digitales generadas
 
 class PatientCreate(Patient):
     password: str  # Contraseña del paciente, necesaria para el registro
@@ -60,6 +57,4 @@ class PatientUpdate(BaseModel):
     treatments: Optional[List[Treatment]] = None
     medications: Optional[List[str]] = None
     allergies: Optional[List[str]] = None
-    appointments: Optional[List[str]] = None
     consultation_history: Optional[List[Consultation]] = None
-    prescriptions: Optional[List[str]] = None

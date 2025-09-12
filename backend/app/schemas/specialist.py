@@ -28,8 +28,6 @@ class Specialist(User):
     biography: Optional[str] = None  # Biografía del especialista
     certifications: Optional[List[str]] = []  # Certificaciones del especialista
     patients: Optional[List[str]] = []  # IDs de pacientes asignados
-    appointments: Optional[List[str]] = []  # IDs de citas/appointments
-    prescriptions: Optional[List[Medication]] = []  # Recetas digitales generadas
     consultation_history: Optional[List[Consultation]] = []  # Consultas realizadas
 
 class SpecialistCreate(Specialist):
@@ -47,13 +45,10 @@ class SpecialistUpdate(BaseModel):
     disabled: Optional[bool] = None
     updated_at: Optional[date] = None
     avatar_url: Optional[str] = None
-
     workplaces: Optional[List[str]] = None
     available_hours: Optional[str] = None
     specialties: Optional[List[str]] = None
     biography: Optional[str] = None
     certifications: Optional[List[str]] = None
     patients: Optional[List[str]] = None
-    appointments: Optional[List[str]] = None
-    prescriptions: Optional[List[Medication]] = None
     consultation_history: Optional[List[Consultation]] = None

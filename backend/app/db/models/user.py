@@ -16,7 +16,6 @@ def individual_serial(user) -> dict:
         "treatments": user.get("treatments", []),
         "medications": user.get("medications", []),
         "allergies": user.get("allergies", []),
-        "appointments": user.get("appointments", []),
         "consultation_history": user.get("consultation_history", []),
         "prescriptions": user.get("prescriptions", []),
         "workplaces": user.get("workplaces", []),
