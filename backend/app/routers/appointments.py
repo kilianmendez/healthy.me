@@ -33,10 +33,26 @@ def only_specialists(current_user: dict = Depends(get_current_user)):
 
 # ----------Endpoints-----------
 @router.post("/", response_model=AppointmentOut, status_code=status.HTTP_201_CREATED)
-async def create_appointment(appointment: Appointment, current_user: dict = Depends(only_specialists)):
-    """Create a new appointment."""
+async def create_appointment(appointment: Appointment, current_user: dict = Depends(get_current_user)):
+    """Create a new appointment or appointment request."""
     appointment_data = appointment.dict()
-    appointment_data["specialist_id"] = current_user["id"]
+    role = current_user.get("role")
+    user_id = current_user.get("id")
+
+    if role == "specialist":
+        appointment_data["specialist_id"] = user_id
+        # Specialist creates a scheduled appointment directly
+        appointment_data["status"] = AppointmentStatus.scheduled
+    elif role == "patient":
+        appointment_data["patient_id"] = user_id
+        # Patient's request is set to pending
+        appointment_data["status"] = AppointmentStatus.pending
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to create an appointment"
+        )
+
     appointment_data = convert_dates_to_datetime(appointment_data)
 
     result = appointments_collection.insert_one(appointment_data)
@@ -45,6 +61,30 @@ async def create_appointment(appointment: Appointment, current_user: dict = Depe
 
     created_appointment = appointments_collection.find_one({"_id": result.inserted_id})
     return AppointmentOut(id=str(created_appointment["_id"]), **created_appointment)
+
+@router.post("/{appointment_id}/confirm", response_model=AppointmentOut)
+async def confirm_appointment(appointment_id: str, current_user: dict = Depends(only_specialists)):
+    """Confirm a pending appointment."""
+    appointment = appointments_collection.find_one({"_id": ObjectId(appointment_id)})
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    if appointment.get("specialist_id") != current_user.get("id"):
+        raise HTTPException(status_code=403, detail="You do not have permission to confirm this appointment.")
+
+    if appointment.get("status") != AppointmentStatus.pending:
+        raise HTTPException(status_code=400, detail="This appointment is not pending confirmation.")
+
+    result = appointments_collection.find_one_and_update(
+        {"_id": ObjectId(appointment_id)},
+        {"$set": {"status": AppointmentStatus.scheduled}},
+        return_document=True
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    return AppointmentOut(id=str(result["_id"]), **result)
 
 @router.get("/search", response_model=List[AppointmentOut])
 async def search_appointments(

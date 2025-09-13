@@ -27,14 +27,19 @@ class Specialist(User):
     specialties: Optional[List[str]] = []  # Especialidades del especialista
     biography: Optional[str] = None  # Biografía del especialista
     certifications: Optional[List[str]] = []  # Certificaciones del especialista
-    patients: Optional[List[str]] = []  # IDs de pacientes asignados
-    consultation_history: Optional[List[Consultation]] = []  # Consultas realizadas
 
 class SpecialistCreate(Specialist):
     password: str  # Contraseña del especialista, necesaria para el registro
 
-class SpecialistOut(Specialist):
-    id: str  # ID del especialista, necesario para la salida del modelo
+class SpecialistPublicOut(Specialist):
+    id: str
+
+    class Config:
+        fields = {'patients': {'exclude': True}}
+
+class SpecialistOut(SpecialistPublicOut):
+    patients: Optional[List[str]] = []
+    consultation_history: Optional[List[Consultation]] = []  # Consultas realizadas
 
 class SpecialistUpdate(BaseModel):
     username: Optional[str] = None

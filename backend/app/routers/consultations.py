@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from schemas.consultation import Consultation, ConsultationOut, ConsultationUpdate
-from db.client import consultations_collection
+from schemas.appointment import AppointmentStatus
+from db.client import consultations_collection, appointments_collection
 from bson import ObjectId
 from typing import List
 from datetime import datetime, date
@@ -43,6 +44,13 @@ async def create_consultation(consultation: Consultation, current_user: dict = D
     result = consultations_collection.insert_one(consultation_data)
     if not result.acknowledged:
         raise HTTPException(status_code=500, detail="Failed to create consultation")
+    
+    # Update appointment status to completed
+    if consultation_data.get("appointment_id"):
+        appointments_collection.update_one(
+            {"_id": ObjectId(consultation_data["appointment_id"])},
+            {"$set": {"status": AppointmentStatus.completed.value}}
+        )
 
     created = consultations_collection.find_one({"_id": result.inserted_id})
     return ConsultationOut(id=str(created["_id"]), **created)

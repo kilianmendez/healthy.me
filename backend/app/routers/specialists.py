@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
-from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut, SpecialistUpdate, Gender
+from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut, SpecialistUpdate, Gender, SpecialistPublicOut
 from db.models.user import individual_serial, list_serial
 from utils.security import validate_password_strength
 from db.client import users_collection
@@ -62,7 +62,7 @@ async def create_specialist(specialist: SpecialistCreate):
     return Specialist(**specialist_dict)
 
 
-@router.get("/search/", response_model=List[SpecialistOut])
+@router.get("/search/", response_model=List[SpecialistPublicOut])
 async def search_specialists(
     full_name: Optional[str] = Query(None, description="Search by full name"),
     biography: Optional[str] = Query(None, description="Search in biography"),
@@ -108,13 +108,13 @@ async def search_specialists(
         if "updated_at" in specialist and isinstance(specialist["updated_at"], datetime):
             specialist["updated_at"] = specialist["updated_at"].date()
 
-        result.append(SpecialistOut(**specialist))
+        result.append(SpecialistPublicOut(**specialist))
 
     return result
 
 
-@router.get("/{specialist_id}", response_model=SpecialistOut)
-async def get_specialist(specialist_id: str):
+@router.get("/{specialist_id}")
+async def get_specialist(specialist_id: str, current_user: Optional[dict] = Depends(get_current_user)):
     """
     Retrieve a specific specialist by ID.
     """
@@ -125,9 +125,13 @@ async def get_specialist(specialist_id: str):
     # Convierte updated_at a date si existe
     if "updated_at" in specialist and isinstance(specialist["updated_at"], datetime):
         specialist["updated_at"] = specialist["updated_at"].date()
-    return SpecialistOut(**specialist)
 
-@router.get("/", response_model=List[SpecialistOut])
+    if current_user and current_user["id"] == specialist_id:
+        return SpecialistOut(**specialist)
+    else:
+        return SpecialistPublicOut(**specialist)
+
+@router.get("/", response_model=List[SpecialistPublicOut])
 async def get_specialists():
     """
     Retrieve a list of all specialists.
@@ -138,7 +142,7 @@ async def get_specialists():
         specialist["id"] = str(specialist["_id"])
         if "updated_at" in specialist and isinstance(specialist["updated_at"], datetime):
             specialist["updated_at"] = specialist["updated_at"].date()
-        result.append(SpecialistOut(**specialist))
+        result.append(SpecialistPublicOut(**specialist))
     return result
 
 @router.put("/{specialist_id}", response_model=SpecialistOut)

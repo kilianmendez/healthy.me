@@ -5,6 +5,7 @@ from enum import Enum
 
 # ----------Enums------------
 class AppointmentStatus(str, Enum):
+    pending = "pending"
     scheduled = "scheduled"
     cancelled = "cancelled"
     completed = "completed"
