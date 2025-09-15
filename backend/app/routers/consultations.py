@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from schemas.consultation import Consultation, ConsultationOut, ConsultationUpdate
 from schemas.appointment import AppointmentStatus
-from db.client import consultations_collection, appointments_collection
+from db.client import consultations_collection, appointments_collection, treatments_collection
 from bson import ObjectId
 from typing import List
 from datetime import datetime, date
@@ -39,6 +39,19 @@ def only_specialists(current_user: dict = Depends(get_current_user)):
 async def create_consultation(consultation: Consultation, current_user: dict = Depends(only_specialists)):
     consultation_data = consultation.dict()
     consultation_data["specialist_id"] = current_user["id"]
+
+    # Handle treatments: create them as separate documents
+    if consultation.treatments:
+        treatment_ids = []
+        for treatment in consultation.treatments:
+            treatment_data = treatment.dict()
+            # You might want to add specialist_id and patient_id to the treatment as well
+            treatment_data["prescribed_by"] = consultation_data["specialist_id"]
+            treatment_data["prescribed_to"] = consultation_data.get("patient_id")
+            result = treatments_collection.insert_one(treatment_data)
+            treatment_ids.append(str(result.inserted_id))
+        consultation_data["treatments"] = treatment_ids
+
     consultation_data = convert_dates_to_datetime(consultation_data)
 
     result = consultations_collection.insert_one(consultation_data)

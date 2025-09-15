@@ -16,8 +16,7 @@ class Consultation(BaseModel):
     notes: Optional[str] = None
     diagnosis: Optional[str] = None             # diagnóstico realizado
     follow_up_required: Optional[bool] = False 
-    prescriptions: Optional[List[str]] = None
-    treatments: Optional[List[str]] = None
+    treatments: Optional[List[Treatment]] = None
     appointment_id: Optional[str] = None        # relación directa con cita (si aplica)
 
 class ConsultationOut(Consultation):
@@ -31,7 +30,6 @@ class ConsultationUpdate(BaseModel):
     notes: Optional[str] = None
     diagnosis: Optional[str] = None
     follow_up_required: Optional[bool] = None 
-    prescriptions: Optional[List[str]] = None
-    treatments: Optional[List[str]] = None
+    treatments: Optional[List[Treatment]] = None
 
 # ---------------------------
