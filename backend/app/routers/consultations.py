@@ -6,7 +6,7 @@ from bson import ObjectId
 from typing import List
 from datetime import datetime, date
 from .auth import get_current_user
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from fastapi import Query
 from typing import Optional
 
@@ -82,6 +82,10 @@ async def create_consultation(consultation: Consultation, current_user: dict = D
 
 from fastapi import Query
 
+def make_fuzzy_regex(value: str) -> str:
+    # Crea regex como .*a.*s.*m.*a.* para aproximar similitud
+    return ".*" + ".*".join(value) + ".*"
+
 @router.get("/search", response_model=List[ConsultationOutSimple])
 async def search_consultations(
     diagnosis: Optional[str] = Query(None, description="Partial diagnosis to search"),
@@ -99,20 +103,23 @@ async def search_consultations(
     role = current_user.get("role")
     user_id = current_user.get("id")
 
+    # Admin can filter by specialist or patient, otherwise, filter by user_id
     if role == "admin":
-        pass  # Admins can search all consultations
+        if specialist_id:
+            query["specialist_id"] = specialist_id
+        if patient_id:
+            query["patient_id"] = patient_id
     elif role == "specialist":
         query["specialist_id"] = user_id
+        if patient_id:
+            query["patient_id"] = patient_id
     elif role == "patient":
         query["patient_id"] = user_id
     else:
         raise HTTPException(status_code=403, detail="You do not have permission to search consultations.")
 
-
-    def make_fuzzy_regex(value: str) -> str:
-        # Crea regex como .*a.*s.*m.*a.* para aproximar similitud
-        return ".*" + ".*".join(value) + ".*"
-
+    # For better performance, consider creating a text index on diagnosis, reason, and notes
+    # and using the $text operator for searches.
     if diagnosis:
         regex = make_fuzzy_regex(diagnosis)
         query["diagnosis"] = {"$regex": regex, "$options": "i"}
@@ -125,23 +132,16 @@ async def search_consultations(
         regex = make_fuzzy_regex(notes)
         query["notes"] = {"$regex": regex, "$options": "i"}
 
-    if specialist_id and role == "admin":
-        query["specialist_id"] = specialist_id
-
-    if patient_id and role == "admin":
-        query["patient_id"] = patient_id
-
     if date_from or date_to:
         query["date"] = {}
         if date_from:
-            query["date"]["$gte"] = date_from
+            query["date"]["$gte"] = datetime.combine(date_from, datetime.min.time()).replace(tzinfo=timezone.utc)
         if date_to:
-            query["date"]["$lte"] = date_to
-        # Si no hay fechas válidas, se elimina la query vacía
+            query["date"]["$lte"] = datetime.combine(date_to, datetime.max.time()).replace(tzinfo=timezone.utc)
         if not query["date"]:
             query.pop("date")
 
-    consultations = consultations_collection.find(query).skip(skip).limit(limit)
+    consultations = consultations_collection.find(query).sort("date", -1).skip(skip).limit(limit)
     return [ConsultationOutSimple(id=str(c["_id"]), **c) for c in consultations]
 
 
