@@ -48,6 +48,8 @@ async def create_consultation(consultation: Consultation, current_user: dict = D
             # You might want to add specialist_id and patient_id to the treatment as well
             treatment_data["prescribed_by"] = consultation_data["specialist_id"]
             treatment_data["prescribed_to"] = consultation_data.get("patient_id")
+            # Convert dates before insertion
+            treatment_data = convert_dates_to_datetime(treatment_data)
             result = treatments_collection.insert_one(treatment_data)
             treatment_ids.append(str(result.inserted_id))
         consultation_data["treatments"] = treatment_ids
@@ -66,6 +68,16 @@ async def create_consultation(consultation: Consultation, current_user: dict = D
         )
 
     created = consultations_collection.find_one({"_id": result.inserted_id})
+
+    # Populate treatments before returning
+    if created.get("treatments"):
+        treatment_ids = [ObjectId(tid) for tid in created["treatments"]]
+        treatments = list(treatments_collection.find({"_id": {"$in": treatment_ids}}))
+        # Convert ObjectId to str for Pydantic model
+        for t in treatments:
+            t["_id"] = str(t["_id"])
+        created["treatments"] = treatments
+
     return ConsultationOut(id=str(created["_id"]), **created)
 
 from fastapi import Query
@@ -170,6 +182,15 @@ async def get_consultation(consultation_id: str, current_user: dict = Depends(ge
         pass  # Patient can see their own consultation
     else:
         raise HTTPException(status_code=403, detail="You do not have permission to view this consultation.")
+
+    # Populate treatments
+    if consultation.get("treatments"):
+        treatment_ids = [ObjectId(tid) for tid in consultation["treatments"]]
+        treatments = list(treatments_collection.find({"_id": {"$in": treatment_ids}}))
+        # Convert ObjectId to str for Pydantic model
+        for t in treatments:
+            t["_id"] = str(t["_id"])
+        consultation["treatments"] = treatments
 
     return ConsultationOut(id=str(consultation["_id"]), **consultation)
 
