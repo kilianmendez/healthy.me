@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from schemas.consultation import Consultation, ConsultationOut, ConsultationUpdate
+from schemas.consultation import Consultation, ConsultationOut, ConsultationUpdate, ConsultationOutSimple
 from schemas.appointment import AppointmentStatus
 from db.client import consultations_collection, appointments_collection, treatments_collection
 from bson import ObjectId
@@ -82,7 +82,7 @@ async def create_consultation(consultation: Consultation, current_user: dict = D
 
 from fastapi import Query
 
-@router.get("/search", response_model=List[ConsultationOut])
+@router.get("/search", response_model=List[ConsultationOutSimple])
 async def search_consultations(
     diagnosis: Optional[str] = Query(None, description="Partial diagnosis to search"),
     reason: Optional[str] = Query(None, description="Partial reason to search"),
@@ -142,10 +142,10 @@ async def search_consultations(
             query.pop("date")
 
     consultations = consultations_collection.find(query).skip(skip).limit(limit)
-    return [ConsultationOut(id=str(c["_id"]), **c) for c in consultations]
+    return [ConsultationOutSimple(id=str(c["_id"]), **c) for c in consultations]
 
 
-@router.get("/", response_model=List[ConsultationOut])
+@router.get("/", response_model=List[ConsultationOutSimple])
 async def list_consultations(skip: int = 0, limit: int = 10, current_user: dict = Depends(get_current_user)):
     query = {}
     role = current_user.get("role")
@@ -162,7 +162,7 @@ async def list_consultations(skip: int = 0, limit: int = 10, current_user: dict 
         raise HTTPException(status_code=403, detail="You do not have permission to view consultations.")
 
     consultations = consultations_collection.find(query).skip(skip).limit(limit)
-    return [ConsultationOut(id=str(c["_id"]), **c) for c in consultations]
+    return [ConsultationOutSimple(id=str(c["_id"]), **c) for c in consultations]
 
 @router.get("/{consultation_id}", response_model=ConsultationOut)
 async def get_consultation(consultation_id: str, current_user: dict = Depends(get_current_user)):

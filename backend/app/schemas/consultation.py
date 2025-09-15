@@ -33,3 +33,6 @@ class ConsultationUpdate(BaseModel):
     treatments: Optional[List[Treatment]] = None
 
 # ---------------------------
+
+class ConsultationOutSimple(ConsultationOut):
+    treatments: Optional[List[str]] = None
