@@ -1,18 +1,20 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, File, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
 from passlib.context import CryptContext
 from schemas.user import User, UserOut, UserCreate
-from schemas.patient import Patient, PatientCreate, PatientPrivate, PatientPublic
-from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut
+from schemas.patient import Patient, PatientRegister, PatientPrivate, PatientPublic
+from schemas.specialist import Specialist, SpecialistRegister, SpecialistOut
 from db.models.user import individual_serial, list_serial
 from db.client import users_collection
 from bson import ObjectId
-from typing import List
+from typing import List, Optional
 from datetime import datetime, date, timedelta
 import os
 import secrets
 from utils.security import validate_password_strength
+import shutil
+import uuid
 
 router = APIRouter()
 
@@ -124,7 +126,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     }
 
 @router.post("/register", response_model=PatientPrivate, status_code=201)
-async def register(patient: PatientCreate):
+async def register(patient: PatientRegister = Depends(), avatar: Optional[UploadFile] = File(None)):
     existing = users_collection.find_one({"email": patient.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already exists")
@@ -137,6 +139,16 @@ async def register(patient: PatientCreate):
     patient_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
     patient_dict["patient_code"] = generate_unique_patient_code()
 
+    if avatar:
+        file_extension = os.path.splitext(avatar.filename)[1]
+        file_name = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join("uploads", "avatars", file_name)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(avatar.file, buffer)
+        patient_dict["avatar_url"] = file_path
+    else:
+        patient_dict["avatar_url"] = "uploads/avatars/placeholder/default_patient.jpg"
+
     patient_dict = convert_dates_to_datetime(patient_dict)
 
     users_collection.insert_one(patient_dict)
@@ -145,7 +157,7 @@ async def register(patient: PatientCreate):
 
 
 @router.post("/register/specialist", response_model=SpecialistOut, status_code=201)
-async def register_specialist(specialist: SpecialistCreate):
+async def register_specialist(specialist: SpecialistRegister = Depends(), avatar: Optional[UploadFile] = File(None)):
     existing = users_collection.find_one({"email": specialist.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already exists")
@@ -157,6 +169,16 @@ async def register_specialist(specialist: SpecialistCreate):
     specialist_dict["password"] = crypt.hash(specialist_dict["password"])
     specialist_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
     specialist_dict["role"] = "specialist"
+
+    if avatar:
+        file_extension = os.path.splitext(avatar.filename)[1]
+        file_name = f"{uuid.uuid4()}{file_extension}"
+        file_path = os.path.join("uploads", "avatars", file_name)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(avatar.file, buffer)
+        specialist_dict["avatar_url"] = file_path
+    else:
+        specialist_dict["avatar_url"] = "uploads/avatars/placeholder/default_specialist.jpg"
 
     specialist_dict = convert_dates_to_datetime(specialist_dict)
 

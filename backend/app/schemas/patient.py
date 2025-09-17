@@ -28,8 +28,13 @@ class Patient(User):
     allergies: Optional[List[str]] = []  # Alergias conocidas
     consultation_history: Optional[List[Consultation]] = []
 
-class PatientCreate(Patient):
-    password: str  # Contraseña del paciente, necesaria para el registro
+class PatientRegister(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None
+    gender: Optional[Gender] = None
+    date_of_birth: Optional[date] = None
 
 # Public model for general lists
 class PatientPublic(BaseModel):

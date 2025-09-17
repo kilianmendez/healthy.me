@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from enum import Enum
 from datetime import date
@@ -28,8 +28,22 @@ class Specialist(User):
     biography: Optional[str] = None  # Biografía del especialista
     certifications: Optional[List[str]] = []  # Certificaciones del especialista
 
-class SpecialistCreate(Specialist):
-    password: str  # Contraseña del especialista, necesaria para el registro
+class SpecialistRegister(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None
+    gender: Optional[Gender] = None
+    date_of_birth: Optional[date] = None
+    specialties: Optional[List[str]] = []
+    biography: Optional[str] = None
+
+    @field_validator("specialties", mode="before")
+    @classmethod
+    def split_specialties(cls, v):
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(",") if s.strip()]
+        return v
 
 class SpecialistPublicOut(Specialist):
     id: str

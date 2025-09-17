@@ -1,8 +1,12 @@
 from fastapi import FastAPI
 from routers import users, auth, patients, specialists, treatments, appointments, consultations, diagnoses
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+
+# Static files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Middleware
 app.add_middleware(
