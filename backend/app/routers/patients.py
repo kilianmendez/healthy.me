@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Response
-from schemas.patient import Patient, PatientCreate, PatientUpdate, PatientPrivate, PatientPublic
+from schemas.patient import Patient, PatientUpdate, PatientPrivate, PatientPublic
 from db.models.user import individual_serial, list_serial
-from utils.security import validate_password_strength
+
 from db.client import users_collection
 from bson import ObjectId
 from typing import List, Union
@@ -9,10 +9,10 @@ from datetime import datetime, date
 from .auth import get_current_user
 from passlib.context import CryptContext
 from typing import Optional
-import secrets
+
 
 router = APIRouter()
-crypt = CryptContext(schemes=["bcrypt"])
+
 
 # ----------Functions-----------
 def convert_dates_to_datetime(data):
@@ -25,39 +25,23 @@ def convert_dates_to_datetime(data):
     else:
         return data
 
-def generate_unique_patient_code():
-    """Generates a unique 8-character hexadecimal code."""
-    while True:
-        code = secrets.token_hex(4).upper()
-        if users_collection.find_one({"patient_code": code}) is None:
-            return code
+
 # -------------------------------
 
 # ---------------Endpoints----------------
 
-@router.post("/", response_model=PatientPrivate, status_code=status.HTTP_201_CREATED)
-async def create_patient(patient: PatientCreate):
-    """
-    Create a new patient.
-    """
-    existing_user = users_collection.find_one({"email": patient.email})
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A user with this email already exists"
-        )
-    
-    validate_password_strength(patient.password)
+@router.get("/", response_model=List[PatientPublic])
+async def get_patients(current_user: dict = Depends(get_current_user)):
+    """Retrieve a list of all patients. Admin only."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to list patients")
 
-    patient_dict = patient.dict()
-    patient_dict["patient_code"] = generate_unique_patient_code()
-    patient_dict["_id"] = ObjectId()
-    patient_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
-    patient_dict["password"] = crypt.hash(patient_dict["password"])
-    patient_dict = convert_dates_to_datetime(patient_dict)
-    users_collection.insert_one(patient_dict)
-    patient_dict["id"] = str(patient_dict["_id"])
-    return PatientPrivate(**patient_dict)
+    patients = users_collection.find({"role": "patient"})
+    result = []
+    for patient in patients:
+        patient["id"] = str(patient["_id"])
+        result.append(PatientPublic(**patient))
+    return result
 
 @router.get("/search", response_model=List[PatientPublic])
 async def search_patients(
@@ -116,19 +100,6 @@ async def get_patient(patient_id: str, current_user: dict = Depends(get_current_
         patient["created_at"] = patient["created_at"].date()
 
     return PatientPrivate(**patient)
-
-@router.get("/", response_model=List[PatientPublic])
-async def get_patients(current_user: dict = Depends(get_current_user)):
-    """Retrieve a list of all patients. Admin only."""
-    if current_user.get("role") != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to list patients")
-
-    patients = users_collection.find({"role": "patient"})
-    result = []
-    for patient in patients:
-        patient["id"] = str(patient["_id"])
-        result.append(PatientPublic(**patient))
-    return result
 
 @router.put("/{patient_id}", response_model=PatientPrivate)
 async def update_patient(

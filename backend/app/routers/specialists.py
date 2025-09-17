@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
-from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut, SpecialistUpdate, Gender, SpecialistPublicOut
+from schemas.specialist import Specialist, SpecialistOut, SpecialistUpdate, Gender, SpecialistPublicOut
 from db.models.user import individual_serial, list_serial
-from utils.security import validate_password_strength
+
 from db.client import users_collection
 from bson import ObjectId
 from typing import List
@@ -17,7 +17,7 @@ import re
 
 router = APIRouter()
 
-crypt = CryptContext(schemes=["bcrypt"])
+
 
 class AddPatientByCodePayload(BaseModel):
     patient_code: str
@@ -36,31 +36,20 @@ def convert_dates_to_datetime(data):
 # -------------------------------
 
 # ---------------Endpoints----------------
-@router.post("/", response_model=Specialist, status_code=status.HTTP_201_CREATED)
-async def create_specialist(specialist: SpecialistCreate):
+
+@router.get("/", response_model=List[SpecialistPublicOut])
+async def get_specialists():
     """
-    Create a new specialist.
+    Retrieve a list of all specialists.
     """
-
-    # Verify if a user with the same email already exists
-    existing_user = users_collection.find_one({"email": specialist.email})
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A user with this email already exists"
-        )
-    
-    validate_password_strength(specialist.password)
-
-    specialist_dict = specialist.dict()
-    specialist_dict["_id"] = ObjectId()
-    specialist_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
-    specialist_dict["password"] = crypt.hash(specialist_dict["password"])
-    specialist_dict = convert_dates_to_datetime(specialist_dict)
-    users_collection.insert_one(specialist_dict)
-    specialist_dict["id"] = str(specialist_dict["_id"])
-    return Specialist(**specialist_dict)
-
+    specialists = users_collection.find({"role": "specialist"})
+    result = []
+    for specialist in specialists:
+        specialist["id"] = str(specialist["_id"])
+        if "updated_at" in specialist and isinstance(specialist["updated_at"], datetime):
+            specialist["updated_at"] = specialist["updated_at"].date()
+        result.append(SpecialistPublicOut(**specialist))
+    return result
 
 @router.get("/search/", response_model=List[SpecialistPublicOut])
 async def search_specialists(
@@ -113,8 +102,8 @@ async def search_specialists(
     return result
 
 
-@router.get("/{specialist_id}")
-async def get_specialist(specialist_id: str, current_user: Optional[dict] = Depends(get_current_user)):
+@router.get("/{specialist_id}", response_model=SpecialistPublicOut)
+async def get_specialist(specialist_id: str):
     """
     Retrieve a specific specialist by ID.
     """
@@ -126,24 +115,7 @@ async def get_specialist(specialist_id: str, current_user: Optional[dict] = Depe
     if "updated_at" in specialist and isinstance(specialist["updated_at"], datetime):
         specialist["updated_at"] = specialist["updated_at"].date()
 
-    if current_user and current_user["id"] == specialist_id:
-        return SpecialistOut(**specialist)
-    else:
-        return SpecialistPublicOut(**specialist)
-
-@router.get("/", response_model=List[SpecialistPublicOut])
-async def get_specialists():
-    """
-    Retrieve a list of all specialists.
-    """
-    specialists = users_collection.find({"role": "specialist"})
-    result = []
-    for specialist in specialists:
-        specialist["id"] = str(specialist["_id"])
-        if "updated_at" in specialist and isinstance(specialist["updated_at"], datetime):
-            specialist["updated_at"] = specialist["updated_at"].date()
-        result.append(SpecialistPublicOut(**specialist))
-    return result
+    return SpecialistPublicOut(**specialist)
 
 @router.put("/{specialist_id}", response_model=SpecialistOut)
 async def update_specialist(

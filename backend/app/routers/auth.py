@@ -3,12 +3,15 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
 from passlib.context import CryptContext
 from schemas.user import User, UserOut, UserCreate
+from schemas.patient import Patient, PatientCreate, PatientPrivate, PatientPublic
+from schemas.specialist import Specialist, SpecialistCreate, SpecialistOut
 from db.models.user import individual_serial, list_serial
 from db.client import users_collection
 from bson import ObjectId
 from typing import List
 from datetime import datetime, date, timedelta
 import os
+import secrets
 from utils.security import validate_password_strength
 
 router = APIRouter()
@@ -39,6 +42,13 @@ def search_user_db(username: str):
             detail="User not found"
         )
     return individual_serial(user)
+
+def generate_unique_patient_code():
+    """Generates a unique 8-character hexadecimal code."""
+    while True:
+        code = secrets.token_hex(4).upper()
+        if users_collection.find_one({"patient_code": code}) is None:
+            return code
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     """
@@ -113,24 +123,46 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "token_type": "bearer",
     }
 
-@router.post("/register", response_model=UserOut, status_code=201)
-async def register(user: UserCreate):
-    existing = users_collection.find_one({"email": user.email})
+@router.post("/register", response_model=PatientPrivate, status_code=201)
+async def register(patient: PatientCreate):
+    existing = users_collection.find_one({"email": patient.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already exists")
 
-    validate_password_strength(user.password)
+    validate_password_strength(patient.password)
 
-    user_dict = user.dict()
-    user_dict["_id"] = ObjectId()
-    user_dict["password"] = crypt.hash(user_dict["password"])
-    user_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
+    patient_dict = patient.dict()
+    patient_dict["_id"] = ObjectId()
+    patient_dict["password"] = crypt.hash(patient_dict["password"])
+    patient_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
+    patient_dict["patient_code"] = generate_unique_patient_code()
 
-    user_dict = convert_dates_to_datetime(user_dict)
+    patient_dict = convert_dates_to_datetime(patient_dict)
 
-    users_collection.insert_one(user_dict)
-    user_dict["id"] = str(user_dict["_id"])
-    return UserOut(**user_dict)
+    users_collection.insert_one(patient_dict)
+    patient_dict["id"] = str(patient_dict["_id"])
+    return PatientPrivate(**patient_dict)
+
+
+@router.post("/register/specialist", response_model=SpecialistOut, status_code=201)
+async def register_specialist(specialist: SpecialistCreate):
+    existing = users_collection.find_one({"email": specialist.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    validate_password_strength(specialist.password)
+
+    specialist_dict = specialist.dict()
+    specialist_dict["_id"] = ObjectId()
+    specialist_dict["password"] = crypt.hash(specialist_dict["password"])
+    specialist_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
+    specialist_dict["role"] = "specialist"
+
+    specialist_dict = convert_dates_to_datetime(specialist_dict)
+
+    users_collection.insert_one(specialist_dict)
+    specialist_dict["id"] = str(specialist_dict["_id"])
+    return SpecialistOut(**specialist_dict)
 
 @router.put("/toggle-admin/{user_id}", response_model=UserOut)
 async def toggle_admin_role(user_id: str, current_user: dict = Depends(get_current_user)):
