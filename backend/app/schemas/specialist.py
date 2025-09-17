@@ -43,6 +43,14 @@ class SpecialistRegister(BaseModel):
     def split_specialties(cls, v):
         if isinstance(v, str):
             return [s.strip() for s in v.split(",") if s.strip()]
+        elif isinstance(v, list):
+            processed_specialties = []
+            for item in v:
+                if isinstance(item, str):
+                    processed_specialties.extend([s.strip() for s in item.split(",") if s.strip()])
+                else:
+                    processed_specialties.append(item)
+            return processed_specialties
         return v
 
 class SpecialistPublicOut(Specialist):
