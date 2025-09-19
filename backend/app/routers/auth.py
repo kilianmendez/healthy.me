@@ -138,6 +138,7 @@ async def register(patient: PatientRegister = Depends(), avatar: Optional[Upload
     patient_dict["password"] = crypt.hash(patient_dict["password"])
     patient_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
     patient_dict["patient_code"] = generate_unique_patient_code()
+    patient_dict["role"] = "patient"
 
     if avatar:
         file_extension = os.path.splitext(avatar.filename)[1]
@@ -202,6 +203,13 @@ async def toggle_admin_role(user_id: str, current_user: dict = Depends(get_curre
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
 
     current_role = user.get("role", "patient")
+    
+    if current_role not in ["admin", "patient"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No se puede modificar el rol de un {current_role}"
+        )
+
     new_role = "patient" if current_role == "admin" else "admin"
 
     updated = users_collection.find_one_and_update(
