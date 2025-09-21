@@ -215,27 +215,3 @@ async def update_appointment(appointment_id: str, appointment_update: Appointmen
 
     result["id"] = str(result["_id"])
     return AppointmentOut(**result)
-
-
-@router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_appointment(appointment_id: str, current_user: dict = Depends(get_current_user)):
-    """Delete an appointment by ID."""
-    appointment = appointments_collection.find_one({"_id": ObjectId(appointment_id)})
-    if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found")
-
-    role = current_user.get("role")
-    user_id = current_user.get("id")
-
-    # Check permissions
-    if role == "admin":
-        pass  # Admin can delete any appointment
-    elif role == "specialist" and appointment.get("specialist_id") == user_id:
-        pass  # Specialist can delete their own appointment
-    else:
-        raise HTTPException(status_code=403, detail="You do not have permission to delete this appointment.")
-
-    result = appointments_collection.delete_one({"_id": ObjectId(appointment_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
-    return {"message": "Appointment deleted successfully"}

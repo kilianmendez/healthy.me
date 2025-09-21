@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from schemas.consultation import Consultation, ConsultationOut, ConsultationUpdate, ConsultationOutSimple
+from schemas.consultation import Consultation, ConsultationOut, ConsultationOutSimple
 from schemas.appointment import AppointmentStatus
 from schemas.diagnosis import DiagnosisCreate, DiagnosisOut
 from schemas.treatment import TreatmentOut
@@ -227,57 +227,5 @@ async def get_consultation(consultation_id: str, current_user: dict = Depends(ge
         consultation["treatments"] = treatments
 
     return ConsultationOut(id=str(consultation["_id"]), **consultation)
-
-@router.put("/{consultation_id}", response_model=ConsultationOut)
-async def update_consultation(consultation_id: str, consultation_update: ConsultationUpdate, current_user: dict = Depends(get_current_user)):
-    
-    consultation = consultations_collection.find_one({"_id": ObjectId(consultation_id)})
-    if not consultation:
-        raise HTTPException(status_code=404, detail="Consultation not found")
-
-    # Check if the user is the specialist who created the consultation
-    if current_user.get("role") != "specialist" or consultation.get("specialist_id") != current_user.get("id"):
-        raise HTTPException(status_code=403, detail="You do not have permission to update this consultation.")
-
-    update_data = consultation_update.dict(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow()
-    update_data = convert_dates_to_datetime(update_data)
-
-    updated = consultations_collection.find_one_and_update(
-        {"_id": ObjectId(consultation_id)},
-        {"$set": update_data},
-        return_document=True
-    )
-
-    if not updated:
-        # This case should ideally not be reached if the first find_one succeeds
-        raise HTTPException(status_code=404, detail="Failed to update consultation")
-    
-    return ConsultationOut(id=str(updated["_id"]), **updated)
-
-@router.delete("/{consultation_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_consultation(consultation_id: str, current_user: dict = Depends(get_current_user)):
-    """Deletes a consultation. Only accessible by the creator specialist or an admin."""
-    consultation = consultations_collection.find_one({"_id": ObjectId(consultation_id)})
-    if not consultation:
-        raise HTTPException(status_code=404, detail="Consultation not found")
-
-    role = current_user.get("role")
-    user_id = current_user.get("id")
-
-    # Check permissions
-    if role == "admin":
-        pass  # Admin can delete any consultation
-    elif role == "specialist" and consultation.get("specialist_id") == user_id:
-        pass  # Specialist can delete their own consultation
-    else:
-        raise HTTPException(status_code=403, detail="You do not have permission to delete this consultation.")
-
-    result = consultations_collection.delete_one({"_id": ObjectId(consultation_id)})
-    if result.deleted_count == 0:
-        # This case should not be reached if the initial find_one was successful
-        raise HTTPException(status_code=404, detail="Consultation not found during deletion")
-    
-    return {"message": "Consultation deleted successfully"}
 
 

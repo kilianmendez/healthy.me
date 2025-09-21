@@ -25,15 +25,7 @@ class ConsultationOut(Consultation):
     diagnosis: Optional[DiagnosisOut] = None
     treatments: Optional[List[TreatmentOut]] = []
 
-class ConsultationUpdate(BaseModel):
-    date: Optional[datetime.date] = None
-    specialist_id: Optional[str] = None
-    patient_id: Optional[str] = None
-    reason: Optional[str] = None
-    notes: Optional[str] = None
-    diagnosis: Optional[str] = None
-    follow_up_required: Optional[bool] = None 
-    treatments: Optional[List[Treatment]] = None
+
 
 # ---------------------------
 
