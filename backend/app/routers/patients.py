@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Response
-from schemas.patient import Patient, PatientUpdate, PatientPrivate, PatientPublic
+from schemas.patient import Patient, PatientUpdate, PatientPrivate, PatientPublic, PatientSelfUpdate
 from db.models.user import individual_serial, list_serial
 
 from db.client import users_collection
@@ -32,11 +32,27 @@ def convert_dates_to_datetime(data):
 
 @router.get("/", response_model=List[PatientPublic])
 async def get_patients(current_user: dict = Depends(get_current_user)):
-    """Retrieve a list of all patients. Admin only."""
-    if current_user.get("role") != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to list patients")
+    """
+    Retrieve a list of patients.
+    - Admins can see all patients.
+    - Specialists can only see their assigned patients.
+    """
+    user_role = current_user.get("role")
 
-    patients = users_collection.find({"role": "patient"})
+    if user_role == "admin":
+        query = {"role": "patient"}
+    elif user_role == "specialist":
+        patient_ids = [ObjectId(p_id) for p_id in current_user.get("patients", [])]
+        if not patient_ids:
+            return []  # Return empty list if specialist has no patients
+        query = {"_id": {"$in": patient_ids}, "role": "patient"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to list patients"
+        )
+
+    patients = users_collection.find(query)
     result = []
     for patient in patients:
         patient["id"] = str(patient["_id"])
@@ -49,11 +65,26 @@ async def search_patients(
     username: Optional[str] = Query(None, description="Search by username (partial, case-insensitive)"),
     full_name: Optional[str] = Query(None, description="Search by full name (partial, case-insensitive)"),
 ):
-    """Search for patients. Admin only."""
-    if current_user.get("role") != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to search patients")
-
+    """
+    Search for patients.
+    - Admins can search all patients.
+    - Specialists can only search their assigned patients.
+    """
+    user_role = current_user.get("role")
     query = {"role": "patient"}
+
+    if user_role == "admin":
+        pass  # No additional query constraints for admin
+    elif user_role == "specialist":
+        patient_ids = [ObjectId(p_id) for p_id in current_user.get("patients", [])]
+        if not patient_ids:
+            return []  # Return empty list if specialist has no patients
+        query["_id"] = {"$in": patient_ids}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to search patients"
+        )
 
     if username:
         query["username"] = {"$regex": username, "$options": "i"}
@@ -99,22 +130,24 @@ async def get_patient(patient_id: str, current_user: dict = Depends(get_current_
     if "created_at" in patient and isinstance(patient["created_at"], datetime):
         patient["created_at"] = patient["created_at"].date()
 
+    # Do not return the patient_code
+    patient.pop("patient_code", None)  # Use pop to avoid KeyError if field is not present
+
     return PatientPrivate(**patient)
 
-@router.put("/{patient_id}", response_model=PatientPrivate)
+@router.put("/me", response_model=PatientPrivate, response_model_exclude_unset=True)
 async def update_patient(
-    patient_id: str, 
-    patient_update: PatientUpdate, 
+    patient_update: PatientSelfUpdate, 
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Update an existing patient's information.
-    Only the patient themselves can update their profile.
+    Update the current patient's information.
     """
-    if patient_id != current_user["id"]:
+    patient_id = current_user["id"]
+    if current_user.get("role") != "patient":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update this patient"
+            detail="Only patients can update their own information."
         )
 
     update_data = patient_update.dict(exclude_unset=True)
@@ -136,6 +169,8 @@ async def update_patient(
     if "created_at" in result and isinstance(result["created_at"], datetime):
         result["created_at"] = result["created_at"].date()
         
+    result.pop("patient_code", None)
+
     return PatientPrivate(**result)
 
 @router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -79,3 +79,16 @@ class SpecialistUpdate(BaseModel):
     certifications: Optional[List[str]] = None
     patients: Optional[List[str]] = None
     consultation_history: Optional[List[Consultation]] = None
+
+class SpecialistSelfUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    gender: Optional[Gender] = None
+    date_of_birth: Optional[date] = None
+    avatar_url: Optional[str] = None
+    workplaces: Optional[List[str]] = None
+    available_hours: Optional[str] = None
+    specialties: Optional[List[str]] = None
+    biography: Optional[str] = None
+    certifications: Optional[List[str]] = None

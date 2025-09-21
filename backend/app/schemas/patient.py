@@ -41,6 +41,9 @@ class PatientPublic(BaseModel):
     id: str
     username: str
     full_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    avatar_url: Optional[str] = None
+    gender: Optional[Gender] = None
 
 
 
@@ -63,3 +66,13 @@ class PatientUpdate(BaseModel):
     medications: Optional[List[str]] = None
     allergies: Optional[List[str]] = None
     consultation_history: Optional[List[Consultation]] = None
+
+class PatientSelfUpdate(BaseModel):
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    avatar_url: Optional[str] = None
+    phone_number: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    allergies: Optional[List[str]] = None
+    medications: Optional[List[str]] = None

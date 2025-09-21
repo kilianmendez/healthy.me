@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
-from schemas.specialist import Specialist, SpecialistOut, SpecialistUpdate, Gender, SpecialistPublicOut
+from schemas.specialist import Specialist, SpecialistOut, SpecialistUpdate, Gender, SpecialistPublicOut, SpecialistSelfUpdate
 from db.models.user import individual_serial, list_serial
 
 from db.client import users_collection
@@ -117,17 +117,19 @@ async def get_specialist(specialist_id: str):
 
     return SpecialistPublicOut(**specialist)
 
-@router.put("/{specialist_id}", response_model=SpecialistOut)
+@router.put("/me", response_model=SpecialistOut)
 async def update_specialist(
-    specialist_id: str, 
-    specialist_update: SpecialistUpdate,
-    current_user: dict = Depends(get_current_user)  # Usuario autenticado
+    specialist_update: SpecialistSelfUpdate,
+    current_user: dict = Depends(get_current_user)
 ):
-    # Verificar que el usuario autenticado es el mismo especialista que intenta modificar
-    if specialist_id != current_user["id"]:
+    """
+    Update the current specialist's information.
+    """
+    specialist_id = current_user["id"]
+    if current_user.get("role") != "specialist":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update this specialist"
+            detail="Only specialists can update their own information."
         )
 
     update_data = specialist_update.dict(exclude_unset=True)
@@ -144,9 +146,11 @@ async def update_specialist(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialist not found")
 
     result["id"] = str(result["_id"])
-    # Convierte updated_at a date si existe
     if "updated_at" in result and isinstance(result["updated_at"], datetime):
         result["updated_at"] = result["updated_at"].date()
+    if "created_at" in result and isinstance(result["created_at"], datetime):
+        result["created_at"] = result["created_at"].date()
+
     return SpecialistOut(**result)
 
 @router.post("/me/patients", response_model=SpecialistOut, status_code=status.HTTP_200_OK)
