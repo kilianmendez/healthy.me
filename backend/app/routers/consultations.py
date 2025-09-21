@@ -1,7 +1,9 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from schemas.consultation import Consultation, ConsultationOut, ConsultationUpdate, ConsultationOutSimple
 from schemas.appointment import AppointmentStatus
-from db.client import consultations_collection, appointments_collection, treatments_collection
+from schemas.diagnosis import DiagnosisCreate, DiagnosisOut
+from schemas.treatment import TreatmentOut
+from db.client import consultations_collection, appointments_collection, treatments_collection, diagnoses_collection
 from bson import ObjectId
 from typing import List
 from datetime import datetime, date
@@ -37,20 +39,40 @@ def only_specialists(current_user: dict = Depends(get_current_user)):
 
 @router.post("/", response_model=ConsultationOut, status_code=status.HTTP_201_CREATED)
 async def create_consultation(consultation: Consultation, current_user: dict = Depends(only_specialists)):
-    consultation_data = consultation.dict()
+    consultation_data = consultation.dict(exclude_unset=True)
     consultation_data["specialist_id"] = current_user["id"]
 
+    # Handle diagnosis
+    diagnosis_input = consultation_data.pop("diagnosis", None)
+    diagnosis_id = None
+    if diagnosis_input:
+        if isinstance(diagnosis_input, dict): # It's a new diagnosis to create
+            from schemas.diagnosis import DiagnosisCreate
+            new_diagnosis = DiagnosisCreate(**diagnosis_input)
+            new_diagnosis_data = new_diagnosis.dict()
+            new_diagnosis_data["specialist_id"] = current_user["id"]
+            new_diagnosis_data["patient_id"] = consultation_data.get("patient_id")
+            new_diagnosis_data = convert_dates_to_datetime(new_diagnosis_data)
+            result = diagnoses_collection.insert_one(new_diagnosis_data)
+            diagnosis_id = str(result.inserted_id)
+        elif isinstance(diagnosis_input, str): # It's an existing diagnosis ID
+            diagnosis_id = diagnosis_input
+    
+    if diagnosis_id:
+        consultation_data["diagnosis_id"] = diagnosis_id
+
     # Handle treatments: create them as separate documents
-    if consultation.treatments:
+    if "treatments" in consultation_data and consultation_data["treatments"]:
         treatment_ids = []
-        for treatment in consultation.treatments:
-            treatment_data = treatment.dict()
-            # You might want to add specialist_id and patient_id to the treatment as well
-            treatment_data["prescribed_by"] = consultation_data["specialist_id"]
-            treatment_data["prescribed_to"] = consultation_data.get("patient_id")
-            # Convert dates before insertion
-            treatment_data = convert_dates_to_datetime(treatment_data)
-            result = treatments_collection.insert_one(treatment_data)
+        for treatment_data in consultation_data["treatments"]:
+            # Assuming treatment_data is a dict that can be parsed by Treatment model
+            from schemas.treatment import Treatment
+            treatment = Treatment(**treatment_data)
+            treatment_data_to_db = treatment.dict()
+            treatment_data_to_db["prescribed_by"] = consultation_data["specialist_id"]
+            treatment_data_to_db["prescribed_to"] = consultation_data.get("patient_id")
+            treatment_data_to_db = convert_dates_to_datetime(treatment_data_to_db)
+            result = treatments_collection.insert_one(treatment_data_to_db)
             treatment_ids.append(str(result.inserted_id))
         consultation_data["treatments"] = treatment_ids
 
@@ -69,13 +91,18 @@ async def create_consultation(consultation: Consultation, current_user: dict = D
 
     created = consultations_collection.find_one({"_id": result.inserted_id})
 
-    # Populate treatments before returning
+    # Populate diagnosis and treatments before returning
+    if created.get("diagnosis_id"):
+        diag = diagnoses_collection.find_one({"_id": ObjectId(created["diagnosis_id"])})
+        if diag:
+            diag["id"] = str(diag["_id"])
+            created["diagnosis"] = diag
+
     if created.get("treatments"):
         treatment_ids = [ObjectId(tid) for tid in created["treatments"]]
         treatments = list(treatments_collection.find({"_id": {"$in": treatment_ids}}))
-        # Convert ObjectId to str for Pydantic model
         for t in treatments:
-            t["_id"] = str(t["_id"])
+            t["id"] = str(t["_id"])
         created["treatments"] = treatments
 
     return ConsultationOut(id=str(created["_id"]), **created)
@@ -183,13 +210,20 @@ async def get_consultation(consultation_id: str, current_user: dict = Depends(ge
     else:
         raise HTTPException(status_code=403, detail="You do not have permission to view this consultation.")
 
+    # Populate diagnosis
+    if consultation.get("diagnosis_id"):
+        diag = diagnoses_collection.find_one({"_id": ObjectId(consultation["diagnosis_id"])})
+        if diag:
+            diag["id"] = str(diag["_id"])
+            consultation["diagnosis"] = diag
+
     # Populate treatments
     if consultation.get("treatments"):
         treatment_ids = [ObjectId(tid) for tid in consultation["treatments"]]
         treatments = list(treatments_collection.find({"_id": {"$in": treatment_ids}}))
         # Convert ObjectId to str for Pydantic model
         for t in treatments:
-            t["_id"] = str(t["_id"])
+            t["id"] = str(t["_id"])
         consultation["treatments"] = treatments
 
     return ConsultationOut(id=str(consultation["_id"]), **consultation)
