@@ -1,6 +1,11 @@
 # Use an official Python runtime as a parent image
 FROM python:3.12-slim
 
+# Install system dependencies (incluyendo certificados SSL)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set the working directory in the container
 WORKDIR /app
 
@@ -17,5 +22,4 @@ COPY ./app .
 EXPOSE 8000
 
 # Run the FastAPI application using Uvicorn
-# Assuming your main FastAPI application instance is in app/main.py and named 'app'
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
