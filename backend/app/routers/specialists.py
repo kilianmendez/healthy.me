@@ -134,6 +134,9 @@ async def verify_specialist(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialist not found")
 
     result["id"] = str(result["_id"])
+    if "updated_at" in result and isinstance(result["updated_at"], datetime):
+        result["updated_at"] = result["updated_at"].date()
+
     return SpecialistOut(**result)
 
 @router.put("/me", response_model=SpecialistOut)
