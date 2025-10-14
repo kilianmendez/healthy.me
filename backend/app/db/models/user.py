@@ -7,6 +7,7 @@ def individual_serial(user) -> dict:
         "gender": user.get("gender"),
         "date_of_birth": user.get("date_of_birth").isoformat() if user.get("date_of_birth") else None,
         "role": user.get("role", "patient"),
+        "is_verified": user.get("is_verified", False),
         "disabled": user.get("disabled", False),
         "created_at": user.get("created_at").isoformat() if user.get("created_at") else None,
         "updated_at": user.get("updated_at").isoformat() if user.get("updated_at") else None,

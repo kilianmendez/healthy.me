@@ -38,7 +38,7 @@ def convert_dates_to_datetime(data):
 # ---------------Endpoints----------------
 
 @router.get("/", response_model=List[SpecialistPublicOut])
-async def get_specialists():
+async def get_specialists(current_user: dict = Depends(get_current_user)):
     """
     Retrieve a list of all specialists.
     """
@@ -53,6 +53,7 @@ async def get_specialists():
 
 @router.get("/search/", response_model=List[SpecialistPublicOut])
 async def search_specialists(
+    current_user: dict = Depends(get_current_user),
     full_name: Optional[str] = Query(None, description="Search by full name"),
     biography: Optional[str] = Query(None, description="Search in biography"),
     specialties: Optional[List[str]] = Query(None, description="One or more specialties"),
@@ -103,7 +104,7 @@ async def search_specialists(
 
 
 @router.get("/{specialist_id}", response_model=SpecialistPublicOut)
-async def get_specialist(specialist_id: str):
+async def get_specialist(specialist_id: str, current_user: dict = Depends(get_current_user)):
     """
     Retrieve a specific specialist by ID.
     """
@@ -116,6 +117,34 @@ async def get_specialist(specialist_id: str):
         specialist["updated_at"] = specialist["updated_at"].date()
 
     return SpecialistPublicOut(**specialist)
+
+@router.patch("/{specialist_id}/verify", response_model=SpecialistOut)
+async def verify_specialist(
+    specialist_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Verify a specialist. This action can only be performed by an admin.
+    """
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admins can verify specialists."
+        )
+
+    update_data = {"is_verified": True, "updated_at": datetime.utcnow()}
+
+    result = users_collection.find_one_and_update(
+        {"_id": ObjectId(specialist_id), "role": "specialist"},
+        {"$set": update_data},
+        return_document=True
+    )
+
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialist not found")
+
+    result["id"] = str(result["_id"])
+    return SpecialistOut(**result)
 
 @router.put("/me", response_model=SpecialistOut)
 async def update_specialist(

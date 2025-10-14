@@ -1,0 +1,43 @@
+# Application Audit Report
+
+This report details findings from a security and code quality audit of the Healthy.me backend application.
+
+## **Critical Security Vulnerabilities**
+### 1. Missing Authentication on Public Endpoints
+- **File**: `app/routers/specialists.py`
+- **Issue**: The endpoints `GET /specialists/` and `GET /specialists/search/` are public, allowing unauthenticated users to access a potentially sensitive list of all medical specialists in the system. The `GET /specialists/{specialist_id}` is also public.
+- **Recommendation**: Require authentication for these endpoints by adding `Depends(get_current_user)` to their signatures. Decide if all authenticated users should be able to see all specialists or if there should be further role-based restrictions.
+
+## **High-Priority Security Issues**
+
+### 1. Missing Secret Key Fallback
+- **File**: `app/routers/auth.py`
+- **Issue**: The application retrieves the `SECRET_KEY` for JWT signing from an environment variable. If this variable is not set, the key will be `None`, and `jwt.encode` will fail at runtime, but more subtle errors could lead to the key being an empty string in some configurations, severely weakening security.
+- **Recommendation**: Add startup validation to ensure that `SECRET_KEY` is a non-empty, strong, randomly generated string. The application should fail to start if the key is missing or weak.
+
+### 2. Inconsistent Admin Role Management
+- **File**: `app/routers/auth.py`
+- **Issue**: The `toggle_admin_role` endpoint allows an admin to change the role of any user between "patient" and "admin". However, it explicitly blocks changing the role of a "specialist". This logic is fragile. An admin could, for example, change a specialist to a patient, and then to an admin.
+- **Recommendation**: The logic should be more robust. It should either prevent any modification of specialist roles or handle the transition gracefully. A better approach would be to have separate, explicit endpoints for role management (e.g., `promote_to_admin`, `demote_to_patient`) with clear business logic for each transition.
+
+## **Bugs and Inconsistencies**
+
+### 1. Incorrect HTTP Response for Deletion Endpoints
+- **Files**: `app/routers/specialists.py`, `app/routers/users.py`, `app/routers/patients.py`
+- **Issue**: The `delete_specialist`, `delete_user`, and `delete_patient` functions are decorated with `status_code=status.HTTP_204_NO_CONTENT` but then return a JSON body. According to the HTTP specification, a 204 response must not contain a body.
+- **Recommendation**: Change the return statement in these functions to `return Response(status_code=status.HTTP_204_NO_CONTENT)`.
+
+### 2. Code Duplication in Routers
+- **Files**: `app/routers/auth.py`, `app/routers/users.py`, `app/routers/patients.py`
+- **Issue**: The helper function `convert_dates_to_datetime` is duplicated across multiple files. This violates the DRY (Don't Repeat Yourself) principle and makes maintenance harder.
+- **Recommendation**: Move the `convert_dates_to_datetime` function and other common utilities to the `app/utils/user_utils.py` file and import them where needed.
+
+### 3. Empty Utility File
+- **File**: `app/utils/user_utils.py`
+- **Issue**: This file is empty, which can cause confusion.
+- **Recommendation**: Populate it with shared utility functions (as mentioned above) or remove it if it is truly unused.
+
+### 4. Potentially Broken Default Avatar Images
+- **File**: `app/routers/auth.py`
+- **Issue**: The registration endpoints assign a default avatar URL (e.g., `uploads/avatars/placeholder/default_patient.jpg`). This will result in broken images if these placeholder files do not exist at that exact path within the `uploads` directory.
+- **Recommendation**: Ensure that the default placeholder images exist at the specified paths or implement a more robust way of handling default avatars, for example by serving a single default image for all users without an avatar.

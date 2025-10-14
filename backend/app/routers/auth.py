@@ -19,12 +19,44 @@ import uuid
 router = APIRouter()
 
 SECRET_KEY = os.getenv("SECRET_KEY_AUTH")  # Change in production
+if not SECRET_KEY or len(SECRET_KEY) < 32:
+    raise RuntimeError("SECRET_KEY environment variable not set or is too short (must be at least 32 characters)")
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 crypt = CryptContext(schemes=["bcrypt"])
 
-# ----------Functions-----------
+# ----------Funtions-----------
+def is_image(filename: str) -> bool:
+    """Check if the file has an image extension."""
+    allowed_extensions = {".png", ".jpg", ".jpeg"}
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in allowed_extensions
+
+def save_avatar(avatar: UploadFile) -> str:
+    """Save the avatar with a unique filename and return the path."""
+    if not is_image(avatar.filename):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only .png, .jpg, and .jpeg files are allowed."
+        )
+
+    file_extension = os.path.splitext(avatar.filename)[1]
+    file_name = f"{uuid.uuid4()}{file_extension}"
+    file_path = os.path.join("uploads", "avatars", file_name)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(avatar.file, buffer)
+    except Exception as e:
+        # Handle potential file system errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Could not save avatar: {e}"
+        )
+
+    return file_path
+
 def convert_dates_to_datetime(data):
     from datetime import datetime, date
     if isinstance(data, dict):
@@ -129,7 +161,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 async def register(patient: PatientRegister = Depends(), avatar: Optional[UploadFile] = File(None)):
     existing = users_collection.find_one({"email": patient.email})
     if existing:
-        raise HTTPException(status_code=400, detail="Email already exists")
+        raise HTTPException(status_code=400, detail="A user with this email already exists")
 
     validate_password_strength(patient.password)
 
@@ -141,12 +173,7 @@ async def register(patient: PatientRegister = Depends(), avatar: Optional[Upload
     patient_dict["role"] = "patient"
 
     if avatar:
-        file_extension = os.path.splitext(avatar.filename)[1]
-        file_name = f"{uuid.uuid4()}{file_extension}"
-        file_path = os.path.join("uploads", "avatars", file_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(avatar.file, buffer)
-        patient_dict["avatar_url"] = file_path
+        patient_dict["avatar_url"] = save_avatar(avatar)
     else:
         patient_dict["avatar_url"] = "uploads/avatars/placeholder/default_patient.jpg"
 
@@ -170,14 +197,10 @@ async def register_specialist(specialist: SpecialistRegister = Depends(), avatar
     specialist_dict["password"] = crypt.hash(specialist_dict["password"])
     specialist_dict["created_at"] = datetime.combine(date.today(), datetime.min.time())
     specialist_dict["role"] = "specialist"
+    specialist_dict["is_verified"] = False
 
     if avatar:
-        file_extension = os.path.splitext(avatar.filename)[1]
-        file_name = f"{uuid.uuid4()}{file_extension}"
-        file_path = os.path.join("uploads", "avatars", file_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(avatar.file, buffer)
-        specialist_dict["avatar_url"] = file_path
+        specialist_dict["avatar_url"] = save_avatar(avatar)
     else:
         specialist_dict["avatar_url"] = "uploads/avatars/placeholder/default_specialist.jpg"
 

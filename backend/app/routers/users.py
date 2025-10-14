@@ -44,6 +44,11 @@ def search_user_db(username: str):
 # ----------Endpoints-----------
 @router.get("/", response_model=List[UserOut])
 async def get_users(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this resource."
+        )
     users = users_collection.find()
     result = []
 
@@ -128,6 +133,11 @@ async def search_users(
 
 @router.get("/{user_id}", response_model=UserOut)
 async def get_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin" and current_user.get("id") != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this resource."
+        )
     user = users_collection.find_one({"_id": ObjectId(user_id)})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -147,6 +157,11 @@ async def create_user(user: UserCreate, current_user: dict = Depends(get_current
     """
     Create a new user.
     """
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to create a new user."
+        )
 
     # Verifica si ya existe un usuario con el mismo email
     existing_user = users_collection.find_one({"email": user.email})

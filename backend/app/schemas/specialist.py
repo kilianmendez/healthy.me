@@ -22,6 +22,7 @@ class Gender(str, Enum):
 # ----------Specialist----------
 class Specialist(User):
     role: UserRole = UserRole.specialist
+    is_verified: Optional[bool] = False
     workplaces: Optional[List[str]] = []  # Lugar de trabajo del especialista
     available_hours: Optional[str] = None  # Horas disponibles para consultas
     specialties: Optional[List[str]] = []  # Especialidades del especialista
