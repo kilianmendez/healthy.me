@@ -13,6 +13,7 @@ from datetime import datetime, date, timedelta
 import os
 import secrets
 from utils.security import validate_password_strength
+from utils.user_utils import convert_dates_to_datetime
 import shutil
 import uuid
 
@@ -56,17 +57,6 @@ def save_avatar(avatar: UploadFile) -> str:
         )
 
     return file_path
-
-def convert_dates_to_datetime(data):
-    from datetime import datetime, date
-    if isinstance(data, dict):
-        return {k: convert_dates_to_datetime(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [convert_dates_to_datetime(item) for item in data]
-    elif isinstance(data, date) and not isinstance(data, datetime):
-        return datetime.combine(data, datetime.min.time())
-    else:
-        return data
 
 def search_user_db(username: str):
     user = users_collection.find_one({"username": username})
@@ -225,12 +215,18 @@ async def toggle_admin_role(user_id: str, current_user: dict = Depends(get_curre
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
 
-    current_role = user.get("role", "patient")
+    current_role = user.get("role")
+
+    if current_role == "specialist":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot modify the role of a specialist."
+        )
     
     if current_role not in ["admin", "patient"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No se puede modificar el rol de un {current_role}"
+            detail=f"Role '{current_role}' is not a manageable role."
         )
 
     new_role = "patient" if current_role == "admin" else "admin"

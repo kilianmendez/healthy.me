@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
 from passlib.context import CryptContext
@@ -12,6 +12,7 @@ import os
 from .auth import get_current_user
 import re
 from utils.security import validate_password_strength
+from utils.user_utils import convert_dates_to_datetime
 from fastapi import Query
 from typing import Optional
 
@@ -20,16 +21,6 @@ router = APIRouter()
 crypt = CryptContext(schemes=["bcrypt"])
 
 # ----------Functions-----------
-def convert_dates_to_datetime(data):
-    if isinstance(data, dict):
-        return {k: convert_dates_to_datetime(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [convert_dates_to_datetime(item) for item in data]
-    elif isinstance(data, date) and not isinstance(data, datetime):
-        return datetime.combine(data, datetime.min.time())
-    else:
-        return data
-
 def search_user_db(username: str):
     user = users_collection.find_one({"username": username})
     if not user:
@@ -204,9 +195,13 @@ async def delete_user(
     if result.deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    return {"message": "User deleted successfully"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # -------------------------------
+
+
+
+
 
 

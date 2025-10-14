@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Response
 from pydantic import BaseModel
 from schemas.specialist import Specialist, SpecialistOut, SpecialistUpdate, Gender, SpecialistPublicOut, SpecialistSelfUpdate
 from db.models.user import individual_serial, list_serial
+from utils.user_utils import convert_dates_to_datetime
 
 from db.client import users_collection
 from bson import ObjectId
@@ -22,17 +23,6 @@ router = APIRouter()
 class AddPatientByCodePayload(BaseModel):
     patient_code: str
 
-# ----------Functions-----------
-def convert_dates_to_datetime(data):
-    from datetime import datetime, date
-    if isinstance(data, dict):
-        return {k: convert_dates_to_datetime(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [convert_dates_to_datetime(item) for item in data]
-    elif isinstance(data, date) and not isinstance(data, datetime):
-        return datetime.combine(data, datetime.min.time())
-    else:
-        return data
 # -------------------------------
 
 # ---------------Endpoints----------------
@@ -292,7 +282,7 @@ async def delete_specialist(
     if result.deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialist not found")
 
-    return {"message": "Specialist deleted successfully"}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # -------------------------------
