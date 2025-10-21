@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 from PIL import Image
+from db.seeder import seed_db
 
 app = FastAPI()
 
@@ -30,6 +31,8 @@ def startup_event():
     if not os.path.exists(specialist_avatar):
         img = Image.new('RGB', image_size, color)
         img.save(specialist_avatar, 'JPEG')
+
+    seed_db()
 
 # Static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
