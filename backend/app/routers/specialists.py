@@ -36,8 +36,12 @@ async def get_specialists(current_user: dict = Depends(get_current_user)):
     result = []
     for specialist in specialists:
         specialist["id"] = str(specialist["_id"])
+        if "created_at" in specialist and isinstance(specialist["created_at"], datetime):
+            specialist["created_at"] = specialist["created_at"].date()
         if "updated_at" in specialist and isinstance(specialist["updated_at"], datetime):
             specialist["updated_at"] = specialist["updated_at"].date()
+        if "specialties" not in specialist or specialist["specialties"] is None:
+            specialist["specialties"] = []
         result.append(SpecialistPublicOut(**specialist))
     return result
 
@@ -103,8 +107,12 @@ async def get_specialist(specialist_id: str, current_user: dict = Depends(get_cu
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialist not found")
     specialist["id"] = str(specialist["_id"])
     # Convierte updated_at a date si existe
+    if "created_at" in specialist and isinstance(specialist["created_at"], datetime):
+        specialist["created_at"] = specialist["created_at"].date()
     if "updated_at" in specialist and isinstance(specialist["updated_at"], datetime):
         specialist["updated_at"] = specialist["updated_at"].date()
+    if "specialties" not in specialist or specialist["specialties"] is None:
+        specialist["specialties"] = []
 
     return SpecialistPublicOut(**specialist)
 
