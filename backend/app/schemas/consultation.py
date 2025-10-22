@@ -15,14 +15,14 @@ class Consultation(BaseModel):
     patient_id: Optional[str] = None            # si consultas se guardan fuera del modelo paciente
     reason: Optional[str] = None
     notes: Optional[str] = None
-    diagnosis: Optional[Union[DiagnosisCreate, str]] = None # diagnóstico realizado
+    diagnosis: Optional[List[Union[DiagnosisCreate, str]]] = None # diagnóstico realizado
     follow_up_required: Optional[bool] = False 
     treatments: Optional[List[Treatment]] = None
     appointment_id: Optional[str] = None        # relación directa con cita (si aplica)
 
 class ConsultationOut(Consultation):
     id: str
-    diagnosis: Optional[DiagnosisOut] = None
+    diagnosis: Optional[List[DiagnosisOut]] = []
     treatments: Optional[List[TreatmentOut]] = []
 
 

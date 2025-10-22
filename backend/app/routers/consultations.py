@@ -43,23 +43,29 @@ async def create_consultation(consultation: Consultation, current_user: dict = D
     consultation_data["specialist_id"] = current_user["id"]
 
     # Handle diagnosis
-    diagnosis_input = consultation_data.pop("diagnosis", None)
-    diagnosis_id = None
-    if diagnosis_input:
-        if isinstance(diagnosis_input, dict): # It's a new diagnosis to create
-            from schemas.diagnosis import DiagnosisCreate
-            new_diagnosis = DiagnosisCreate(**diagnosis_input)
-            new_diagnosis_data = new_diagnosis.dict()
-            new_diagnosis_data["specialist_id"] = current_user["id"]
-            new_diagnosis_data["patient_id"] = consultation_data.get("patient_id")
-            new_diagnosis_data = convert_dates_to_datetime(new_diagnosis_data)
-            result = diagnoses_collection.insert_one(new_diagnosis_data)
-            diagnosis_id = str(result.inserted_id)
-        elif isinstance(diagnosis_input, str): # It's an existing diagnosis ID
-            diagnosis_id = diagnosis_input
+    diagnosis_inputs = consultation_data.pop("diagnosis", [])
+    diagnosis_ids = []
+    if diagnosis_inputs:
+        for diagnosis_input in diagnosis_inputs:
+            diagnosis_id = None
+            if isinstance(diagnosis_input, dict): # It's a new diagnosis to create
+                from schemas.diagnosis import DiagnosisCreate
+                new_diagnosis = DiagnosisCreate(**diagnosis_input)
+                new_diagnosis_data = new_diagnosis.dict()
+                new_diagnosis_data["specialist_id"] = current_user["id"]
+                new_diagnosis_data["patient_id"] = consultation_data.get("patient_id")
+                new_diagnosis_data = convert_dates_to_datetime(new_diagnosis_data)
+                result = diagnoses_collection.insert_one(new_diagnosis_data)
+                diagnosis_id = str(result.inserted_id)
+            elif isinstance(diagnosis_input, str): # It's an existing diagnosis ID
+                # Optionally, you might want to validate if the diagnosis ID actually exists
+                diagnosis_id = diagnosis_input
+            
+            if diagnosis_id:
+                diagnosis_ids.append(diagnosis_id)
     
-    if diagnosis_id:
-        consultation_data["diagnosis_id"] = diagnosis_id
+    if diagnosis_ids:
+        consultation_data["diagnosis_ids"] = diagnosis_ids
 
     # Handle treatments: create them as separate documents
     if "treatments" in consultation_data and consultation_data["treatments"]:
@@ -92,11 +98,12 @@ async def create_consultation(consultation: Consultation, current_user: dict = D
     created = consultations_collection.find_one({"_id": result.inserted_id})
 
     # Populate diagnosis and treatments before returning
-    if created.get("diagnosis_id"):
-        diag = diagnoses_collection.find_one({"_id": ObjectId(created["diagnosis_id"])})
-        if diag:
+    if created.get("diagnosis_ids"):
+        diagnosis_ids = [ObjectId(did) for did in created["diagnosis_ids"]]
+        diagnoses = list(diagnoses_collection.find({"_id": {"$in": diagnosis_ids}}))
+        for diag in diagnoses:
             diag["id"] = str(diag["_id"])
-            created["diagnosis"] = diag
+        created["diagnosis"] = diagnoses
 
     if created.get("treatments"):
         treatment_ids = [ObjectId(tid) for tid in created["treatments"]]
@@ -211,11 +218,12 @@ async def get_consultation(consultation_id: str, current_user: dict = Depends(ge
         raise HTTPException(status_code=403, detail="You do not have permission to view this consultation.")
 
     # Populate diagnosis
-    if consultation.get("diagnosis_id"):
-        diag = diagnoses_collection.find_one({"_id": ObjectId(consultation["diagnosis_id"])})
-        if diag:
+    if consultation.get("diagnosis_ids"):
+        diagnosis_ids = [ObjectId(did) for did in consultation["diagnosis_ids"]]
+        diagnoses = list(diagnoses_collection.find({"_id": {"$in": diagnosis_ids}}))
+        for diag in diagnoses:
             diag["id"] = str(diag["_id"])
-            consultation["diagnosis"] = diag
+        consultation["diagnosis"] = diagnoses
 
     # Populate treatments
     if consultation.get("treatments"):
