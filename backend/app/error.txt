@@ -9,56 +9,33 @@
   File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in merged_lifespan
     async with original_context(app) as maybe_original_state:
                ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\routing.py", line 571, in __aenter__
     await self._router.startup()
   File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\routing.py", line 673, in startup
     handler()
   File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\app\main.py", line 35, in startup_event
     seed_database()
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\app\db\seeder.py", line 42, in seed_database
-    users_collection.insert_one(admin_user)
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\collection.py", line 705, in insert_one
-    self._insert(document,
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\collection.py", line 620, in _insert
-    return self._insert_one(
-           ^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\collection.py", line 609, in _insert_one
-    self.__database.client._retryable_write(
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\mongo_client.py", line 1552, in _retryable_write
-    return self._retry_with_session(retryable, func, s, None)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\mongo_client.py", line 1438, in _retry_with_session
-    return self._retry_internal(retryable, func, session, bulk)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\mongo_client.py", line 1470, in _retry_internal
-    return func(session, sock_info, retryable)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\collection.py", line 597, in _insert_command
-    result = sock_info.command(
-             ^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\pool.py", line 726, in command
-    self._raise_connection_failure(error)
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\pool.py", line 710, in command
-    return command(self, dbname, spec, secondary_ok,
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\network.py", line 118, in command
-    request_id, msg, size, max_doc_size = message._op_msg(
-                                          ^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\message.py", line 742, in _op_msg
-    return _op_msg_uncompressed(
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\message.py", line 712, in _op_msg_uncompressed
-    data, total_size, max_bson_size = _op_msg_no_header(
-                                      ^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pymongo\message.py", line 689, in _op_msg_no_header
-    encoded_docs = [_dict_to_bson(doc, check_keys, opts) for doc in docs]
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\bson\__init__.py", line 875, in _dict_to_bson
-    elements.append(_element_to_bson(key, value,
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\bson\__init__.py", line 861, in _element_to_bson
-    return _name_value_to_bson(name, value, check_keys, opts)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\bson\__init__.py", line 845, in _name_value_to_bson
-    raise InvalidDocument(
-bson.errors.InvalidDocument: cannot encode object: datetime.date(1980, 5, 15), of type: <class 'datetime.date'>
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\app\db\seeder.py", line 155, in seed_database
+    "certifications": [random.choice(certification_templates).format(specialty=s, specialty_short=s.split()[0]) for s in chosen_specialties],
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'organization'
+
+ERROR:    Application startup failed. Exiting.
