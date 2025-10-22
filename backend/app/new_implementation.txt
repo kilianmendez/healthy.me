@@ -1,0 +1,58 @@
+# Implementation Plan: Patient Medical History Endpoint
+
+**Objective:** Implement a new FastAPI endpoint `/patients/{patient_id}/medical-history` that returns a patient’s complete medical history in either JSON or PDF format, following the project's existing conventions.
+
+---
+
+### Phase 1: Setup and Configuration
+
+1.  **Update Dependencies**:
+    *   Open the `requirements.txt` file.
+    *   Add the line `WeasyPrint==62.4` to add the PDF generation library.
+    *   I will then run the command to install the new dependency from the requirements file.
+
+2.  **Create Project Structure**:
+    *   Create a new directory: `app/templates/`.
+    *   Inside `app/templates/`, create a new file named `medical_history.html`. This will be the Jinja2 template for the PDF report.
+    *   Create a new schema file: `app/schemas/medical_history.py`.
+    *   Create a new utility file: `app/utils/pdf_generator.py`.
+
+---
+
+### Phase 2: Schemas, Template, and PDF Utility
+
+3.  **Define Response Schemas (`app/schemas/medical_history.py`)**:
+    *   This file will define the Pydantic models to structure the medical history data for the JSON response.
+    *   It will include a main `MedicalHistory` schema containing patient details and lists of consultations, diagnoses, and treatments.
+
+4.  **Create HTML Template (`app/templates/medical_history.html`)**:
+    *   This file will contain the HTML structure for the PDF report.
+    *   It will use Jinja2 template syntax (e.g., `{{ patient.name }}`) as placeholders for the medical history data.
+    *   The layout will include a header, title, and formatted sections for the patient's medical records.
+
+5.  **Implement PDF Generation Utility (`app/utils/pdf_generator.py`)**:
+    *   This file will contain a helper function to separate the PDF creation logic from the main endpoint.
+    *   The function will take the medical history data, render the `medical_history.html` template with it, and use `WeasyPrint` to convert the final HTML to a PDF.
+
+---
+
+### Phase 3: Endpoint Implementation
+
+6.  **Modify Patient Router (`app/routers/patients.py`)**:
+    *   I will add the new endpoint `GET /patients/{patient_id}/medical-history` to this file.
+    *   The endpoint will handle the core logic of the feature.
+
+7.  **Implement Endpoint Logic**:
+    *   **Authorization**: First, it will verify that the current user is authorized to view the requested patient's data (i.e., they are the patient, an admin, or an assigned specialist).
+    *   **Data Aggregation**: It will fetch the patient's information and then query the database to collect all related consultations, diagnoses, and treatments. It will also handle the optional date filters.
+    *   **Logging**: It will create a log entry in a new `logs` collection in the database, recording who accessed the data, for which patient, and in what format.
+    *   **Response Generation**: Based on the `format` query parameter, it will either:
+        *   Return the data as JSON.
+        *   Use the PDF utility to generate a PDF and return it as a streaming response.
+
+---
+
+### Phase 4: Finalization
+
+8.  **Testing**:
+    *   After implementation, I will need to test the endpoint to ensure it works as expected. This includes testing the JSON and PDF outputs, the authorization logic for different user roles, the date filters, and verifying that logs are created correctly.
