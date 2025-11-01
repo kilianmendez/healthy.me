@@ -5,51 +5,30 @@ This document outlines the step-by-step plan to implement a system for specialis
 
 ---
 
-## Part 1: Availability Management
+I want to implement a scheduling system for specialists within the Healthy.me backend.
 
-### Phase 1.1: Database and Schema Definition
-1.  **Create `app/schemas/availability.py`:**
-    *   `WeeklyAvailabilityBase(BaseModel)`: Defines the core fields for a weekly availability slot (`specialist_id`, `day_of_week`, `start_time`, `end_time`).
-    *   `WeeklyAvailabilityCreate(WeeklyAvailabilityBase)`: Schema for creating a new weekly availability slot.
-    *   `WeeklyAvailabilityOut(WeeklyAvailabilityBase)`: Schema for returning a weekly availability slot, including its ID.
-    *   `BlockedSlotBase(BaseModel)`: Defines the core fields for a blocked slot (`specialist_id`, `start_datetime`, `end_datetime`, `reason`).
-    *   `BlockedSlotCreate(BlockedSlotBase)`: Schema for creating a new blocked slot.
-    *   `BlockedSlotOut(BlockedSlotBase)`: Schema for returning a blocked slot, including its ID.
+Feature Overview
 
-2.  **Create `app/db/models/availability.py`:**
-    *   Implement `individual_serial` and `list_serial` functions to serialize availability and blocked slot data from MongoDB.
+Specialists can define a global weekly working schedule that repeats every week throughout the year (for example, from 08:00 to 17:00).
 
-3.  **Database Collections:**
-    *   A new collection named `availabilities` will be created to store the recurring weekly schedules for specialists.
-    *   A new collection named `blocked_slots` will be created to store specific date/time ranges when a specialist is unavailable.
+Patients can only book appointments during those working hours.
 
-### Phase 1.2: API Endpoints for Availability
-1.  **Create `app/routers/availability.py`:**
-    *   This new file will contain all API endpoints related to managing availability.
-    *   **Weekly Schedule Endpoints:**
-        *   `POST /availability/weekly/`: Allows a logged-in specialist to create a new weekly availability slot.
-        *   `GET /availability/weekly/{specialist_id}`: Retrieves all weekly availability slots for a given specialist.
-        *   `DELETE /availability/weekly/{availability_id}`: Allows a specialist to delete one of their weekly availability slots.
-    *   **Blocked Time Endpoints:**
-        *   `POST /availability/block/`: Allows a logged-in specialist to block a specific time range.
-        *   `GET /availability/block/{specialist_id}`: Retrieves all blocked time slots for a given specialist.
-        *   `DELETE /availability/block/{block_id}`: Allows a specialist to remove a blocked time slot.
+Specialists can edit or update their weekly schedule at any time.
 
-2.  **Update `app/main.py`:**
-    *   Import and include the new availability router in the main FastAPI application.
+Additionally, specialists can mark specific days or time slots as unavailable (for example, due to vacations, emergencies, or other reasons). These unavailable periods temporarily override the regular schedule for that date.
 
-### Phase 1.3: Integration with Appointments
-1.  **Create a validation utility in `app/routers/appointments.py`:**
-    *   A new function, `is_specialist_available(specialist_id: str, appointment_datetime: datetime)`, will be created.
-    *   This function will check if a specialist is available at a requested time by:
-        1.  Verifying the time falls within the specialist's weekly schedule.
-        2.  Ensuring the time does not conflict with any entries in the `blocked_slots` collection.
+Integration with existing appointments
 
-2.  **Modify `create_appointment` endpoint:**
-    *   Before creating a new appointment, the `is_specialist_available` function will be called.
-    *   If the specialist is not available, the API will return an error, preventing the appointment from being booked.
+The system already has an appointments collection in the database.
+When showing available time slots to patients, the backend must:
 
----
+Start from the specialist’s global weekly schedule.
+
+Remove any time slots that appear in the specialist’s unavailable times.
+
+Also remove any time slots that are already taken by existing appointments.
+
+This ensures that the patient only sees real, free time slots.
 
 ## Part 2: Notifications (Real-Time with WebSockets)
 

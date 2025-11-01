@@ -15,7 +15,7 @@ from db.models.availability import (
     list_blocked_slot_serial
 )
 from bson import ObjectId
-from typing import List, Optional
+from typing import List, Optional, Dict
 from fastapi import Query
 from routers.auth import get_current_user
 from datetime import time, datetime, date
@@ -41,6 +41,9 @@ async def create_bulk_weekly_availability(
     current_user: dict = Depends(only_specialists)
 ):
     """Create multiple weekly availability slots for the logged-in specialist."""
+    # Delete all existing weekly availabilities for the specialist
+    weekly_availabilities_collection.delete_many({"specialist_id": current_user["id"]})
+
     created_availabilities = []
     dummy_date = date.min
     for availability in availabilities.availabilities:
@@ -78,45 +81,7 @@ async def create_bulk_weekly_availability(
         created_availabilities.append(individual_weekly_availability_serial(created_availability))
     return {"availabilities": created_availabilities}
 
-@router.post("/weekly/", response_model=WeeklyAvailabilityOut, status_code=status.HTTP_201_CREATED)
-async def create_weekly_availability(
-    availability: WeeklyAvailabilityCreate,
-    current_user: dict = Depends(only_specialists)
-):
-    """Create a new weekly availability slot for the logged-in specialist."""
-    availability_data = availability.dict()
-    availability_data["specialist_id"] = current_user["id"]
 
-    dummy_date = date.min
-    start_time = datetime.combine(dummy_date, availability_data["start_time"])
-    end_time = datetime.combine(dummy_date, availability_data["end_time"])
-
-    # Check for overlapping weekly availability for the same day
-    existing_availability = weekly_availabilities_collection.find_one({
-        "specialist_id": current_user["id"],
-        "day_of_week": availability_data["day_of_week"],
-        "$or": [
-            {"$and": [
-                {"start_time": {"$lt": end_time}},
-                {"end_time": {"$gt": start_time}}
-            ]},
-            {"start_time": start_time},
-            {"end_time": end_time}
-        ]
-    })
-
-    if existing_availability:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Overlapping weekly availability already exists for this day."
-        )
-    
-    availability_data["start_time"] = start_time
-    availability_data["end_time"] = end_time
-
-    result = weekly_availabilities_collection.insert_one(availability_data)
-    created_availability = weekly_availabilities_collection.find_one({"_id": result.inserted_id})
-    return individual_weekly_availability_serial(created_availability)
 
 @router.get("/weekly/{specialist_id}", response_model=List[WeeklyAvailabilityOut])
 async def get_weekly_availability(specialist_id: str, current_user: dict = Depends(get_current_user)):
@@ -149,85 +114,95 @@ async def delete_weekly_availability(
     weekly_availabilities_collection.delete_one({"_id": ObjectId(availability_id)})
     return
 
-@router.get("/slots/{specialist_id}", response_model=List[time])
+@router.get("/slots/{specialist_id}", response_model=Dict[date, List[time]])
 async def get_available_slots(
     specialist_id: str,
-    date: date = Query(..., description="Date to check availability for (YYYY-MM-DD)"),
+    start_date: date = Query(..., description="Start date to check availability for (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="End date to check availability for (YYYY-MM-DD)"),
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Retrieve available time slots for a specific specialist on a given date.
+    Retrieve available time slots for a specific specialist over a date range.
     Considers weekly availability, blocked slots, and existing appointments.
     """
+    if not end_date:
+        end_date = start_date
+
+    if start_date > end_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Start date cannot be after end date.")
+
     # Ensure the user has permission to view this specialist's availability
     if current_user["role"] == "specialist" and specialist_id != current_user["id"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Specialists can only view their own availability.")
     elif current_user["role"] not in ["patient", "specialist", "admin"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view availability.")
 
-    day_of_week = date.weekday() # Monday is 0, Sunday is 6
     appointment_duration_minutes = 30 # Assuming 30-minute slots
+    availability_by_date = {}
+    current_date = start_date
 
-    # 1. Get weekly availability for the day
-    weekly_availabilities = weekly_availabilities_collection.find({
-        "specialist_id": specialist_id,
-        "day_of_week": day_of_week
-    })
-    
-    available_slots_today = []
-    for weekly_slot in weekly_availabilities:
-        start_time = datetime.combine(date, weekly_slot["start_time"])
-        end_time = datetime.combine(date, weekly_slot["end_time"])
+    while current_date <= end_date:
+        day_of_week = current_date.weekday() # Monday is 0, Sunday is 6
+
+        # 1. Get weekly availability for the day
+        weekly_availabilities = weekly_availabilities_collection.find({
+            "specialist_id": specialist_id,
+            "day_of_week": day_of_week
+        })
         
-        current_slot_start = start_time
-        while current_slot_start + timedelta(minutes=appointment_duration_minutes) <= end_time:
-            available_slots_today.append(current_slot_start.time())
-            current_slot_start += timedelta(minutes=appointment_duration_minutes)
+        available_slots_today = []
+        for weekly_slot in weekly_availabilities:
+            start_time = datetime.combine(current_date, weekly_slot["start_time"].time())
+            end_time = datetime.combine(current_date, weekly_slot["end_time"].time())
+            
+            current_slot_start = start_time
+            while current_slot_start + timedelta(minutes=appointment_duration_minutes) <= end_time:
+                available_slots_today.append(current_slot_start.time())
+                current_slot_start += timedelta(minutes=appointment_duration_minutes)
 
-    # 2. Get blocked slots for the date
-    blocked_slots = blocked_slots_collection.find({
-        "specialist_id": specialist_id,
-        "start_datetime": {"$lte": datetime.combine(date, time.max)},
-        "end_datetime": {"$gte": datetime.combine(date, time.min)}
-    })
+        # 2. Get blocked slots for the date
+        blocked_slots = blocked_slots_collection.find({
+            "specialist_id": specialist_id,
+            "start_datetime": {"$lte": datetime.combine(current_date, time.max)},
+            "end_datetime": {"$gte": datetime.combine(current_date, time.min)}
+        })
 
-    for blocked_slot in blocked_slots:
-        blocked_start = blocked_slot["start_datetime"]
-        blocked_end = blocked_slot["end_datetime"]
+        for blocked_slot in blocked_slots:
+            blocked_start = blocked_slot["start_datetime"]
+            blocked_end = blocked_slot["end_datetime"]
+            
+            available_slots_today = [
+                slot_time for slot_time in available_slots_today
+                if not (
+                    datetime.combine(current_date, slot_time) < blocked_end and
+                    datetime.combine(current_date, slot_time) + timedelta(minutes=appointment_duration_minutes) > blocked_start
+                )
+            ]
+
+        # 3. Get existing appointments for the date
+        existing_appointments = appointments_collection.find({
+            "specialist_id": specialist_id,
+            "date": {"$gte": datetime.combine(current_date, time.min), "$lte": datetime.combine(current_date, time.max)},
+            "status": {"$in": ["scheduled", "pending"]}
+        })
+
+        for appointment in existing_appointments:
+            appointment_start = appointment["date"]
+            appointment_end = appointment_start + timedelta(minutes=appointment_duration_minutes)
+            
+            available_slots_today = [
+                slot_time for slot_time in available_slots_today
+                if not (
+                    datetime.combine(current_date, slot_time) < appointment_end and
+                    datetime.combine(current_date, slot_time) + timedelta(minutes=appointment_duration_minutes) > appointment_start
+                )
+            ]
         
-        # Remove any slots that overlap with blocked times
-        available_slots_today = [
-            slot_time for slot_time in available_slots_today
-            if not (
-                datetime.combine(date, slot_time) < blocked_end and
-                datetime.combine(date, slot_time) + timedelta(minutes=appointment_duration_minutes) > blocked_start
-            )
-        ]
+        available_slots_today.sort()
+        availability_by_date[current_date] = available_slots_today
+        current_date += timedelta(days=1)
 
-    # 3. Get existing appointments for the date
-    existing_appointments = appointments_collection.find({
-        "specialist_id": specialist_id,
-        "date": {"$gte": datetime.combine(date, time.min), "$lte": datetime.combine(date, time.max)},
-        "status": {"$in": ["scheduled", "pending"]}
-    })
-
-    for appointment in existing_appointments:
-        appointment_start = appointment["date"] # Assuming 'date' field in appointment is datetime
-        appointment_end = appointment_start + timedelta(minutes=appointment_duration_minutes) # Assuming 30 min appointments
-        
-        # Remove any slots that overlap with existing appointments
-        available_slots_today = [
-            slot_time for slot_time in available_slots_today
-            if not (
-                datetime.combine(date, slot_time) < appointment_end and
-                datetime.combine(date, slot_time) + timedelta(minutes=appointment_duration_minutes) > appointment_start
-            )
-        ]
-    
-    # Sort the available slots
-    available_slots_today.sort()
-
-    return available_slots_today
+    return availability_by_date
 
 # --- Blocked Slots Endpoints ---
 
