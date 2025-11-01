@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from schemas.appointment import Appointment, AppointmentOut, AppointmentUpdate
-from db.client import appointments_collection
+from db.client import appointments_collection, weekly_availabilities_collection, blocked_slots_collection
 from bson import ObjectId
 from typing import List
-from datetime import datetime, date
+from datetime import datetime, date, time, timedelta
 from fastapi import Query
 from typing import Optional
 from schemas.appointment import AppointmentStatus
@@ -29,6 +29,33 @@ def only_specialists(current_user: dict = Depends(get_current_user)):
             detail="You do not have permission to perform this action"
         )
     return current_user
+
+async def is_specialist_available(specialist_id: str, appointment_datetime: datetime) -> bool:
+    # 1. Check weekly availability
+    day_of_week = appointment_datetime.weekday() # Monday is 0, Sunday is 6
+    appointment_time = appointment_datetime.time()
+
+    weekly_availability = weekly_availabilities_collection.find_one({
+        "specialist_id": specialist_id,
+        "day_of_week": day_of_week,
+        "start_time": {"$lte": appointment_time},
+        "end_time": {"$gte": appointment_time + timedelta(minutes=30)} # Assuming 30 min appointment slots
+    })
+
+    if not weekly_availability:
+        return False
+
+    # 2. Check blocked slots
+    blocked_slot = blocked_slots_collection.find_one({
+        "specialist_id": specialist_id,
+        "start_datetime": {"$lt": appointment_datetime + timedelta(minutes=30)},
+        "end_datetime": {"$gt": appointment_datetime}
+    })
+
+    if blocked_slot:
+        return False
+
+    return True
 # -------------------------------
 
 # ----------Endpoints-----------
@@ -39,21 +66,29 @@ async def create_appointment(appointment: Appointment, current_user: dict = Depe
     role = current_user.get("role")
     user_id = current_user.get("id")
 
-    if role == "specialist":
-        appointment_data["specialist_id"] = user_id
-        # Specialist creates a scheduled appointment directly
-        appointment_data["status"] = AppointmentStatus.scheduled
-    elif role == "patient":
+    # Convert appointment date to datetime for availability check
+    appointment_datetime = datetime.combine(appointment.date, appointment.time)
+
+    if role == "patient":
+        # For patients, check specialist availability
+        if not await is_specialist_available(appointment.specialist_id, appointment_datetime):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Specialist is not available at the requested time."
+            )
         appointment_data["patient_id"] = user_id
-        # Patient's request is set to pending
         appointment_data["status"] = AppointmentStatus.pending
+    elif role == "specialist":
+        # For specialists, they can create appointments directly, assuming they manage their own schedule
+        appointment_data["specialist_id"] = user_id
+        appointment_data["status"] = AppointmentStatus.scheduled
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to create an appointment"
         )
 
-    appointment_data = convert_dates_to_datetime(appointment_data)
+    appointment_data["date"] = appointment_datetime # Store as datetime in DB
 
     result = appointments_collection.insert_one(appointment_data)
     if not result.acknowledged:
