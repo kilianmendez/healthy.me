@@ -1,41 +1,68 @@
-    return await anext(self.gen)
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in merged_lifespan
-    async with original_context(app) as maybe_original_state:
-               ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\contextlib.py", line 210, in __aenter__
-    return await anext(self.gen)
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in merged_lifespan
-    async with original_context(app) as maybe_original_state:
-               ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\contextlib.py", line 210, in __aenter__
-    return await anext(self.gen)
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in merged_lifespan
-    async with original_context(app) as maybe_original_state:
-               ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\contextlib.py", line 210, in __aenter__
-    return await anext(self.gen)
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in merged_lifespan
-    async with original_context(app) as maybe_original_state:
-               ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Python312\Lib\contextlib.py", line 210, in __aenter__
-    return await anext(self.gen)
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 134, in merged_lifespan
-    async with original_context(app) as maybe_original_state:
-               ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\routing.py", line 571, in __aenter__
-    await self._router.startup()
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\routing.py", line 673, in startup
-    handler()
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\app\main.py", line 35, in startup_event
-    seed_database()
-  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\app\db\seeder.py", line 155, in seed_database
-    "certifications": [random.choice(certification_templates).format(specialty=s, specialty_short=s.split()[0]) for s in chosen_specialties],
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-KeyError: 'organization'
-
-ERROR:    Application startup failed. Exiting.
+INFO:     Finished server process [28120]
+C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\pydantic\_internal\_config.py:373: UserWarning: Valid config keys have changed in V2:
+* 'fields' has been removed
+  warnings.warn(message, UserWarning)
+INFO:     Started server process [29236]
+INFO:     Waiting for application startup.
+Database is not empty. Skipping seeding.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:63248 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63248 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51120 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59549 - "GET /availability/weekly/68f904a07a32865925529334 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51936 - "POST /availability/weekly/bulk HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:59111 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60962 - "POST /availability/weekly/bulk HTTP/1.1" 201 Created
+INFO:     127.0.0.1:65304 - "GET /availability/weekly/68f904a07a32865925529334 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62471 - "POST /availability/weekly/bulk HTTP/1.1" 201 Created
+INFO:     127.0.0.1:55126 - "GET /availability/weekly/68f904a07a32865925529334 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57407 - "GET /availability/slots/68f904a07a32865925529334?start_date=2025-11-01&end_date=2025-11-07 HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\middleware\cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\routing.py", line 78, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\starlette\routing.py", line 75, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 302, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\.venv\Lib\site-packages\fastapi\routing.py", line 213, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Kylian\OneDrive\Documentos\GitHub\healthy.me\backend\app\routers\availability.py", line 159, in get_available_slots
+    while current_slot_start + timedelta(minutes=appointment_duration_minutes) <= end_time:
+                               ^^^^^^^^^
+NameError: name 'timedelta' is not defined
