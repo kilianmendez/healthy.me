@@ -5,30 +5,72 @@ This document outlines the step-by-step plan to implement a system for specialis
 
 ---
 
-I want to implement a scheduling system for specialists within the Healthy.me backend.
+##To fix in availability:
 
-Feature Overview
+**Part 1: Availability System Enhancements**
 
-Specialists can define a global weekly working schedule that repeats every week throughout the year (for example, from 08:00 to 17:00).
+**Phase 1.1: Flexible Appointment Durations**
 
-Patients can only book appointments during those working hours.
+1.  **Update `app/schemas/specialist.py`:**
+    *   Add a new field `appointment_duration` (in minutes, e.g., `int = 30`) to the `Specialist` schema. This will allow each specialist to have a default appointment duration.
+2.  **Update `app/routers/availability.py`:**
+    *   In the `get_available_slots` function, instead of using a hardcoded `appointment_duration_minutes = 30`, fetch the `appointment_duration` from the specialist's profile.
+    *   Provide a fallback to a default value (e.g., 30 minutes) if the specialist has not configured a specific duration.
 
-Specialists can edit or update their weekly schedule at any time.
+**Phase 1.2: Appointment Types**
 
-Additionally, specialists can mark specific days or time slots as unavailable (for example, due to vacations, emergencies, or other reasons). These unavailable periods temporarily override the regular schedule for that date.
+1.  **Create `app/schemas/appointment_type.py`:**
+    *   `AppointmentTypeBase(BaseModel)`: Defines `name` (e.g., "Initial Consultation"), `duration` (in minutes), and `description`.
+    *   `AppointmentTypeCreate(AppointmentTypeBase)`: Schema for creating a new appointment type.
+    *   `AppointmentTypeOut(AppointmentTypeBase)`: Schema for returning an appointment type, including its ID.
+2.  **Create `app/db/models/appointment_type.py`:**
+    *   Implement `individual_serial` and `list_serial` functions for `appointment_types`.
+3.  **Create `app/routers/appointment_types.py`:**
+    *   Implement full CRUD endpoints for managing appointment types (`/appointment-types/`). This will allow specialists to create, view, update, and delete their own appointment types.
+4.  **Update `app/schemas/appointment.py`:**
+    *   Add an `appointment_type_id: str` field to the `Appointment` schema.
+5.  **Update `app/routers/appointments.py`:**
+    *   When creating an appointment, the `appointment_type_id` will be required.
+    *   The duration of the appointment will be determined by the selected appointment type, overriding the specialist's default duration.
 
-Integration with existing appointments
+**Phase 1.3: Buffer Time Between Appointments**
 
-The system already has an appointments collection in the database.
-When showing available time slots to patients, the backend must:
+1.  **Update `app/schemas/specialist.py`:**
+    *   Add a `buffer_time` field (in minutes, e.g., `int = 10`) to the `Specialist` schema.
+2.  **Update `app/routers/availability.py`:**
+    *   In `get_available_slots`, after an appointment is booked, add the `buffer_time` to the end of the appointment to create a buffer before the next available slot.
 
-Start from the specialist’s global weekly schedule.
+**Phase 1.4: Enhanced Time-Off Management**
 
-Remove any time slots that appear in the specialist’s unavailable times.
+1.  **Create `app/schemas/time_off.py`:**
+    *   `TimeOffBase(BaseModel)`: Defines `start_date`, `end_date`, and an optional `reason`.
+    *   `TimeOffCreate(TimeOffBase)`: Schema for creating a new time-off entry.
+    *   `TimeOffOut(TimeOffBase)`: Schema for returning a time-off entry, including its ID.
+2.  **Create `app/db/models/time_off.py`:**
+    *   Implement `individual_serial` and `list_serial` functions for `time_off`.
+3.  **Create `app/routers/time_off.py`:**
+    *   Implement CRUD endpoints for managing time off (`/time-off/`).
+4.  **Update `app/routers/availability.py`:**
+    *   In `get_available_slots`, in addition to checking for blocked slots, also check for time-off entries and filter out any slots that fall within a time-off period.
 
-Also remove any time slots that are already taken by existing appointments.
+**Phase 1.5: Recurring Blocked Slots**
 
-This ensures that the patient only sees real, free time slots.
+1.  **Update `app/schemas/availability.py`:**
+    *   Add a `recurrence_rule` field to the `BlockedSlot` schema. This could be a string following a standard format like iCalendar's RRULE (e.g., `"FREQ=WEEKLY;BYDAY=MO"` for every Monday).
+2.  **Update `app/routers/availability.py`:**
+    *   In `get_available_slots`, when fetching blocked slots, also fetch recurring blocked slots.
+    *   For each recurring blocked slot, calculate the occurrences that fall within the requested date range and treat them as regular blocked slots for filtering purposes.
+
+**Phase 1.6: Robust Timezone Handling**
+
+1.  **Standardize on UTC:**
+    *   All `datetime` objects will be stored in the database in UTC.
+2.  **Update `app/schemas`:**
+    *   Ensure that all `datetime` fields in Pydantic models are timezone-aware.
+3.  **Update `app/routers`:**
+    *   When creating or updating any object with a `datetime` field, ensure that the `datetime` is converted to UTC before being stored in the database.
+    *   When returning any object with a `datetime` field, the API can either return it in UTC (and let the client handle the conversion) or accept a `timezone` parameter to convert it to the user's local timezone.
+
 
 ## Part 2: Notifications (Real-Time with WebSockets)
 
