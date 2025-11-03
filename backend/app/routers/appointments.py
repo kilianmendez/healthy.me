@@ -67,7 +67,7 @@ async def create_appointment(appointment: Appointment, current_user: dict = Depe
     user_id = current_user.get("id")
 
     # Convert appointment date to datetime for availability check
-    appointment_datetime = datetime.combine(appointment.date, appointment.time)
+    appointment_datetime = appointment.date
 
     if role == "patient":
         # For patients, check specialist availability
