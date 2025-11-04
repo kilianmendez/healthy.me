@@ -24,7 +24,9 @@ def individual_serial(user) -> dict:
         "specialties": user.get("specialties", []),
         "biography": user.get("biography"),
         "certifications": user.get("certifications", []),
-        "patients": user.get("patients", [])
+        "patients": user.get("patients", []),
+        "appointment_duration": user.get("appointment_duration"),
+        "buffer_time": user.get("buffer_time")
     }
 
 def list_serial(users) -> list:

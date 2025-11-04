@@ -28,6 +28,8 @@ class Specialist(User):
     specialties: Optional[List[str]] = []  # Especialidades del especialista
     biography: Optional[str] = None  # Biografía del especialista
     certifications: Optional[List[str]] = []  # Certificaciones del especialista
+    appointment_duration: Optional[int] = 30 # Duración de la cita en minutos
+    buffer_time: Optional[int] = 10 # Tiempo de búfer entre citas en minutos
 
 class SpecialistRegister(BaseModel):
     username: str
@@ -80,6 +82,7 @@ class SpecialistUpdate(BaseModel):
     certifications: Optional[List[str]] = None
     patients: Optional[List[str]] = None
     consultation_history: Optional[List[Consultation]] = None
+    appointment_duration: Optional[int] = None
 
 class SpecialistSelfUpdate(BaseModel):
     username: Optional[str] = None
@@ -93,3 +96,5 @@ class SpecialistSelfUpdate(BaseModel):
     specialties: Optional[List[str]] = None
     biography: Optional[str] = None
     certifications: Optional[List[str]] = None
+    appointment_duration: Optional[int] = None
+    buffer_time: Optional[int] = None

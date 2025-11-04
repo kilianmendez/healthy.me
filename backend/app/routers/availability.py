@@ -7,7 +7,7 @@ from schemas.availability import (
     WeeklyAvailabilityCreateList,
     WeeklyAvailabilityOutList
 )
-from db.client import weekly_availabilities_collection, blocked_slots_collection, appointments_collection
+from db.client import weekly_availabilities_collection, blocked_slots_collection, appointments_collection, users_collection
 from db.models.availability import (
     individual_weekly_availability_serial, 
     list_weekly_availability_serial, 
@@ -137,7 +137,13 @@ async def get_available_slots(
     elif current_user["role"] not in ["patient", "specialist", "admin"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view availability.")
 
-    appointment_duration_minutes = 30 # Assuming 30-minute slots
+    # Fetch specialist's appointment duration, with a fallback to 30 minutes
+    specialist_data = users_collection.find_one({"_id": ObjectId(specialist_id)})
+    if not specialist_data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Specialist not found.")
+    
+    appointment_duration_minutes = specialist_data.get("appointment_duration", 30)
+    buffer_time_minutes = specialist_data.get("buffer_time", 10)
     availability_by_date = {}
     current_date = start_date
 
@@ -197,7 +203,7 @@ async def get_available_slots(
                 is_booked = False
                 for appointment in existing_appointments:
                     appointment_start = appointment["date"]
-                    appointment_end = appointment_start + timedelta(minutes=appointment_duration_minutes)
+                    appointment_end = appointment_start + timedelta(minutes=appointment_duration_minutes + buffer_time_minutes)
                     if slot_datetime >= appointment_start and slot_datetime < appointment_end:
                         is_booked = True
                         break
