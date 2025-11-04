@@ -19,6 +19,7 @@ def individual_blocked_slot_serial(blocked_slot) -> dict:
         "start_datetime": blocked_slot["start_datetime"].isoformat(),
         "end_datetime": blocked_slot["end_datetime"].isoformat(),
         "reason": blocked_slot.get("reason"),
+        "recurrence_rule": blocked_slot.get("recurrence_rule"),
     }
 
 def list_blocked_slot_serial(blocked_slots) -> list:

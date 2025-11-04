@@ -18,7 +18,8 @@ from bson import ObjectId
 from typing import List, Optional, Dict
 from fastapi import Query
 from routers.auth import get_current_user
-from datetime import time, datetime, date, timedelta
+from datetime import time, datetime, date, timedelta, timezone
+from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY, YEARLY
 
 router = APIRouter()
 
@@ -166,12 +167,60 @@ async def get_available_slots(
                 available_slots_today.append(current_slot_start.time())
                 current_slot_start += timedelta(minutes=appointment_duration_minutes)
 
-        # 2. Get blocked slots for the date
-        blocked_slots = list(blocked_slots_collection.find({
+        # 2. Get blocked slots for the date (one-time and recurring)
+        all_blocked_slots = []
+
+        # Fetch one-time blocked slots
+        one_time_blocked_slots = blocked_slots_collection.find({
             "specialist_id": specialist_id,
+            "recurrence_rule": {"$exists": False},  # Only one-time slots
             "start_datetime": {"$lte": datetime.combine(current_date, time.max)},
             "end_datetime": {"$gte": datetime.combine(current_date, time.min)}
-        }))
+        })
+        all_blocked_slots.extend(list(one_time_blocked_slots))
+
+        # Fetch recurring blocked slots
+        recurring_blocked_slots = blocked_slots_collection.find({
+            "specialist_id": specialist_id,
+            "recurrence_rule": {"$exists": True}  # Only recurring slots
+        })
+
+        for r_slot in recurring_blocked_slots:
+            try:
+                # Parse the recurrence rule
+                rule = rrule.rrulestr(r_slot["recurrence_rule"], dtstart=r_slot["start_datetime"])
+                
+                # Get occurrences within the current day
+                # We need to consider occurrences that start on or before current_date and end on or after current_date
+                
+                # Get occurrences for the current day
+                occurrences = list(rule.between(
+                    datetime.combine(current_date, time.min).replace(tzinfo=timezone.utc), # Start of current day in UTC
+                    datetime.combine(current_date, time.max).replace(tzinfo=timezone.utc), # End of current day in UTC
+                    inc=True # Include start/end if they fall on the boundary
+                ))
+
+                for occ in occurrences:
+                    # Create a blocked slot for each occurrence
+                    # Adjust start and end times based on the original blocked slot's duration
+                    duration = r_slot["end_datetime"] - r_slot["start_datetime"]
+                    occ_end = occ + duration
+                    
+                    # Ensure the occurrence is within the current day's bounds for filtering
+                    # This check is important if a recurring event spans across midnight
+                    if occ.date() == current_date or occ_end.date() == current_date:
+                        all_blocked_slots.append({
+                            "start_datetime": occ,
+                            "end_datetime": occ_end,
+                            "reason": r_slot.get("reason", "Recurring Blocked"),
+                            "specialist_id": r_slot["specialist_id"]
+                        })
+            except Exception as e:
+                # Log error or handle invalid recurrence rule
+                print(f"Error parsing recurrence rule for blocked slot {r_slot['_id']}: {e}")
+                continue
+        
+        blocked_slots = all_blocked_slots
 
         if blocked_slots:
             filtered_slots = []
@@ -255,6 +304,8 @@ async def create_blocked_slot(
             detail="End datetime must be after start datetime."
         )
     blocked_slot_data["specialist_id"] = current_user["id"]
+    if blocked_slot.recurrence_rule:
+        blocked_slot_data["recurrence_rule"] = blocked_slot.recurrence_rule
 
     # Check for overlapping blocked slots
     existing_blocked_slot = blocked_slots_collection.find_one({

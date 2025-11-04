@@ -25,6 +25,7 @@ class BlockedSlotBase(BaseModel):
     start_datetime: datetime
     end_datetime: datetime
     reason: Optional[str] = None
+    recurrence_rule: Optional[str] = None
 
 class BlockedSlotCreate(BlockedSlotBase):
     pass
