@@ -7,7 +7,7 @@ from schemas.availability import (
     WeeklyAvailabilityCreateList,
     WeeklyAvailabilityOutList
 )
-from db.client import weekly_availabilities_collection, blocked_slots_collection, appointments_collection, users_collection
+from db.client import weekly_availabilities_collection, blocked_slots_collection, appointments_collection, users_collection, time_off_collection
 from db.models.availability import (
     individual_weekly_availability_serial, 
     list_weekly_availability_serial, 
@@ -189,7 +189,30 @@ async def get_available_slots(
             available_slots_today = filtered_slots
 
 
-        # 3. Get existing appointments for the date
+        # 3. Get time-off entries for the date
+        time_off_entries = list(time_off_collection.find({
+            "specialist_id": specialist_id,
+            "start_datetime": {"$lte": datetime.combine(current_date, time.max)},
+            "end_datetime": {"$gte": datetime.combine(current_date, time.min)}
+        }))
+
+        if time_off_entries:
+            filtered_slots = []
+            for slot_time in available_slots_today:
+                slot_datetime = datetime.combine(current_date, slot_time)
+                is_time_off = False
+                for time_off_entry in time_off_entries:
+                    time_off_start = time_off_entry["start_datetime"]
+                    time_off_end = time_off_entry["end_datetime"]
+                    if slot_datetime >= time_off_start and slot_datetime < time_off_end:
+                        is_time_off = True
+                        break
+                if not is_time_off:
+                    filtered_slots.append(slot_time)
+            available_slots_today = filtered_slots
+
+
+        # 4. Get existing appointments for the date
         existing_appointments = list(appointments_collection.find({
             "specialist_id": specialist_id,
             "date": {"$gte": datetime.combine(current_date, time.min), "$lte": datetime.combine(current_date, time.max)},

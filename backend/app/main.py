@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import users, auth, patients, specialists, treatments, appointments, consultations, diagnoses, availability
+from routers import users, auth, patients, specialists, treatments, appointments, consultations, diagnoses, availability, time_off
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
@@ -57,6 +57,7 @@ app.include_router(treatments.router, prefix="/treatments", tags=["Treatments"])
 app.include_router(appointments.router, prefix="/appointments", tags=["Appointments"])
 app.include_router(consultations.router, prefix="/consultations", tags=["Consultations"])
 app.include_router(availability.router, prefix="/availability", tags=["Availability"])
+app.include_router(time_off.router, prefix="/time-off", tags=["Time-Off"])
 
 @app.get("/")
 def read_root():
