@@ -25,7 +25,9 @@ class BlockedSlotBase(BaseModel):
     start_datetime: datetime
     end_datetime: datetime
     reason: Optional[str] = None
-    recurrence_rule: Optional[str] = None
+    is_recurring: bool = False
+    recurrence_end_date: Optional[datetime] = None
+    recurrence_day_of_week: Optional[str] = None
 
 class BlockedSlotCreate(BlockedSlotBase):
     pass
