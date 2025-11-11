@@ -214,26 +214,47 @@ async def get_available_slots(
             available_slots_today = filtered_slots
 
         # 4. Filter based on time-off entries
-        time_off_entries = time_off_collection.find({
+        time_off_entries = list(time_off_collection.find({
             "specialist_id": specialist_id,
             "start_datetime": {"$lte": datetime.combine(current_date, time.max)},
             "end_datetime": {"$gte": datetime.combine(current_date, time.min)}
-        })
+        }))
         if time_off_entries:
-            # This filtering logic can be combined with the one above, but separated for clarity
-            # Re-using the same filtering pattern
-            pass # Add filtering logic here if needed, similar to blocked slots
+            filtered_slots = []
+            for slot_time in available_slots_today:
+                slot_datetime = datetime.combine(current_date, slot_time)
+                is_time_off = False
+                for time_off_entry in time_off_entries:
+                    time_off_start = time_off_entry["start_datetime"]
+                    time_off_end = time_off_entry["end_datetime"]
+                    if slot_datetime >= time_off_start and slot_datetime < time_off_end:
+                        is_time_off = True
+                        break
+                if not is_time_off:
+                    filtered_slots.append(slot_time)
+            available_slots_today = filtered_slots
 
         # 5. Filter based on existing appointments
-        existing_appointments = appointments_collection.find({
+        existing_appointments = list(appointments_collection.find({
             "specialist_id": specialist_id,
             "date": {"$gte": datetime.combine(current_date, time.min), "$lte": datetime.combine(current_date, time.max)},
             "status": {"$in": ["scheduled", "pending"]}
-        })
+        }))
         
         if existing_appointments:
-            # Re-using the same filtering pattern
-            pass # Add filtering logic here if needed
+            filtered_slots = []
+            for slot_time in available_slots_today:
+                slot_datetime = datetime.combine(current_date, slot_time)
+                is_booked = False
+                for appointment in existing_appointments:
+                    appointment_start = appointment["date"]
+                    appointment_end = appointment_start + timedelta(minutes=appointment_duration_minutes + buffer_time_minutes)
+                    if slot_datetime >= appointment_start and slot_datetime < appointment_end:
+                        is_booked = True
+                        break
+                if not is_booked:
+                    filtered_slots.append(slot_time)
+            available_slots_today = filtered_slots
 
         available_slots_today.sort()
         availability_by_date[current_date] = available_slots_today
